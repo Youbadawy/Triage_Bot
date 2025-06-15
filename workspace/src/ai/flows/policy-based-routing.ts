@@ -31,11 +31,11 @@ export async function policyBasedAppointmentRouting(input: PolicyBasedAppointmen
 const getCaFRoutingRecommendation = ai.defineTool(
   {
     name: 'getCaFRoutingRecommendation',
-    description: 'This tool uses an AI model (LLaMA 3 via OpenRouter) to analyze triage text against CAF medical policies and routing rules to determine the appropriate appointment type. Use this to make a routing recommendation.',
+    description: 'This tool uses an AI model (LLaMA 4 Scout equivalent via OpenRouter) to analyze triage text against CAF medical policies and routing rules to determine the appropriate appointment type. Use this to make a routing recommendation.',
     inputSchema: z.object({
       triageText: z.string().describe('The text of the triage to be used for routing.'),
     }),
-    outputSchema: PolicyBasedAppointmentRoutingOutputSchema,
+    outputSchema: PolicyBasedAppointmentRoutingOutputSchema, // Output schema matches the flow's output
   },
   async (input) => {
     const apiKey = process.env.OPENROUTER_API_KEY;
@@ -47,7 +47,7 @@ const getCaFRoutingRecommendation = ai.defineTool(
       };
     }
 
-    const modelName = "meta-llama/llama-3-70b-instruct";
+    const modelName = "meta-llama/llama-3-70b-instruct"; // Using a capable Llama 3 model
 
     const systemPrompt = `You are an AI assistant acting as LLaMA 4 Scout, an expert in Canadian Armed Forces (CAF) medical policies and appointment routing rules. Your task is to analyze the provided triage text and recommend an appropriate medical appointment type based on CAF guidelines. You must strictly adhere to providing a response in the specified JSON format. Do not include any explanatory text or markdown formatting outside of the JSON structure itself.`;
 
@@ -69,9 +69,9 @@ Provide your response exclusively in the following JSON format:
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          // Optional OpenRouter headers:
-          // 'HTTP-Referer': 'YOUR_SITE_URL', // Replace with your app's URL
-          // 'X-Title': 'CAF MedRoute', // Replace with your app's name
+          // OpenRouter specific headers if needed, e.g., for routing or referrer
+          // 'HTTP-Referer': 'YOUR_SITE_URL', // Optional: Replace with your app's URL
+          // 'X-Title': 'YOUR_APP_NAME', // Optional: Replace with your app's name
         },
         body: JSON.stringify({
           model: modelName,
