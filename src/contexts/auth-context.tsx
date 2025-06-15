@@ -6,7 +6,8 @@ import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config'; 
-import { LoadingSpinner } from '@/components/shared/loading-spinner';
+// LoadingSpinner import removed as AuthProvider itself will no longer render it directly.
+// UI based on loading state is handled by consumers like AppLayout.
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -20,22 +21,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // True until auth state is resolved
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // Potentially fetch additional user profile data from Firestore here
-        const userProfile: UserProfile = {
-          ...firebaseUser,
-          // displayName: firebaseUser.displayName, // ensure these are mapped
-          // email: firebaseUser.email,
-          // photoURL: firebaseUser.photoURL,
-          // uid: firebaseUser.uid,
+        // UserProfile extends FirebaseUser, so spreading firebaseUser is appropriate
+        const userProfile: UserProfile = { 
+          ...firebaseUser 
         };
         setUser(userProfile);
 
-        // Check for admin role (placeholder - use custom claims in production)
         try {
           const adminDocRef = doc(db, 'admins', firebaseUser.uid);
           const adminDocSnap = await getDoc(adminDocRef);
@@ -49,34 +45,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         setIsAdmin(false);
       }
-      setLoading(false);
+      setLoading(false); // Auth state has been determined
     });
 
     return () => unsubscribe();
   }, []);
 
   const logout = async () => {
-    setLoading(true);
+    // setLoading(true); // Optionally set loading true if logout is slow
     try {
       await auth.signOut();
       setUser(null);
       setIsAdmin(false);
     } catch (error) {
       console.error("Error signing out: ", error);
-      // Handle error appropriately, maybe with a toast
+      // Handle error appropriately
     } finally {
-      setLoading(false);
+      // setLoading(false); // If setLoading(true) was used above
     }
   };
   
-  if (loading && typeof window !== 'undefined' && window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <LoadingSpinner size={48} />
-      </div>
-    );
-  }
-
+  // AuthProvider will now always render the Provider and its children.
+  // The conditional rendering of a loading spinner that caused hydration issues has been removed.
+  // Consumers of the context (e.g., AppLayout, HomePage) are responsible for UI based on the 'loading' state.
 
   return (
     <AuthContext.Provider value={{ user, isAdmin, loading, logout }}>
