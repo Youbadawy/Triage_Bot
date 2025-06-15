@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import type { ChatMessage, AppointmentRecommendation, AIChatInput } from '@/types';
+import type { ChatMessage, AppointmentRecommendation } from '@/types';
 import { ChatMessages } from './components/chat-messages';
 import { ChatInputForm } from './components/chat-input-form';
 import { RecommendationDisplay } from './components/recommendation-display';
@@ -28,12 +29,12 @@ export default function ChatPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
 
 
-  const initialMessageContent = language === 'fr'
-  ? "Bonjour ! Je suis votre assistant médical CAF MedRoute. Comment puis-je vous aider aujourd'hui concernant vos symptômes, blessures ou besoins professionnels ?"
-  : "Hello! I'm your CAF MedRoute medical assistant. How can I help you today regarding your symptoms, injury, or occupational needs?";
-
-
   useEffect(() => {
+    // Use t() for initial greeting based on language context
+    const initialMessageContent = language === 'fr' 
+      ? t('initialChatGreetingFr') 
+      : t('initialChatGreetingEn');
+
     setMessages([
       {
         id: crypto.randomUUID(),
@@ -45,7 +46,7 @@ export default function ChatPage() {
     setRecommendation(null);
     setIsEmergency(false);
     setSessionId(null); // Reset session ID for new chat
-  }, [language, initialMessageContent]);
+  }, [language, t]); // Add t to dependency array
 
   const handleEmergencyKeywordDetected = () => {
     setIsEmergency(true);
@@ -67,7 +68,7 @@ export default function ChatPage() {
       const sessionData = {
         userId: user.uid,
         timestamp: serverTimestamp(),
-        chatHistory: finalMessages.map(m => ({ role: m.role, content: m.content, timestamp: m.timestamp || new Date() })), // Ensure timestamp is Date object for Firestore conversion
+        chatHistory: finalMessages.map(m => ({ role: m.role, content: m.content, timestamp: m.timestamp || new Date() })),
         recommendation: finalRecommendation,
         language: language,
         emergencyAlertTriggered: emergencyDetected,
@@ -78,8 +79,8 @@ export default function ChatPage() {
       console.error("Error saving triage session to Firestore:", error);
       toast({
         variant: "destructive",
-        title: t('errorSavingSessionTitle') || "Error Saving Session",
-        description: t('errorSavingSessionDesc') || "Could not save the triage session.",
+        title: t('errorSavingSessionTitle'),
+        description: t('errorSavingSessionDesc'),
       });
       return null;
     }
@@ -100,8 +101,8 @@ export default function ChatPage() {
     setRecommendation(null);
 
     const chatHistoryForAI = messages
-      .filter(msg => msg.role === 'user' || msg.role === 'assistant') // Only user and assistant messages
-      .slice(-MAX_CHAT_HISTORY_FOR_AI * 2) // Take last N pairs
+      .filter(msg => msg.role === 'user' || msg.role === 'assistant')
+      .slice(-MAX_CHAT_HISTORY_FOR_AI * 2) 
       .map(msg => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
 
     try {
@@ -113,7 +114,24 @@ export default function ChatPage() {
       });
 
       if (result.error) {
-        throw new Error(result.error);
+        // Use t() for the user-facing part of the error, if possible
+        const displayError = t('aiError'); 
+        const systemMessageContent = result.aiResponse?.content ? `${displayError} Details: ${result.aiResponse.content}` : displayError;
+        
+        setMessages((prevMessages) => [...prevMessages, {
+          id: crypto.randomUUID(),
+          role: 'system',
+          content: systemMessageContent,
+          timestamp: new Date(),
+        }]);
+        
+        toast({
+          variant: 'destructive',
+          title: t('aiErrorTitle'),
+          description: t('aiErrorDesc'),
+        });
+        setIsLoading(false); // Ensure loading state is reset on error
+        return;
       }
       
       const aiResponseMsg = result.aiResponse;
@@ -121,7 +139,6 @@ export default function ChatPage() {
 
       if (result.recommendation) {
         setRecommendation(result.recommendation);
-        // Save session when recommendation is made
         const updatedMessages = [...messages, newUserMessage, aiResponseMsg];
         const newSessionId = await saveTriageSessionToFirestore(updatedMessages, result.recommendation, isEmergency);
         if (newSessionId) setSessionId(newSessionId);
@@ -129,17 +146,18 @@ export default function ChatPage() {
 
     } catch (error: any) {
       console.error('Error processing message:', error);
+      const errorMessageContent = t('aiError');
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'system',
-        content: t('aiError') || error.message || 'Sorry, I encountered an issue. Please try again.',
+        content: errorMessageContent,
         timestamp: new Date(),
       };
       setMessages((prevMessages) => [...prevMessages, errorMessage]);
       toast({
         variant: 'destructive',
-        title: t('aiErrorTitle') || 'AI Error',
-        description: t('aiErrorDesc') || error.message || 'Could not get a response from the assistant.',
+        title: t('aiErrorTitle'),
+        description: t('aiErrorDesc'),
       });
     } finally {
       setIsLoading(false);

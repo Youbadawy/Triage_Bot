@@ -1,14 +1,15 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+// Import Inter directly if not using variable, or keep variable if used in tailwind.config
+// import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/auth-context';
-import { LanguageProvider } from '@/contexts/language-context'; // Stub
+import { LanguageProvider } from '@/contexts/language-context'; 
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+// const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'CAF MedRoute',
+  title: 'CAF MedRoute', // This will be overridden by LanguageContext if t('appName') is used
   description: 'Canadian Armed Forces Medical Triage Assistant',
 };
 
@@ -18,19 +19,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    // lang attribute will be set by LanguageProvider effect
+    <html suppressHydrationWarning> 
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* Inter is handled by next/font, so no explicit link needed if using it that way.
-            However, instructions said to use <link> elements.
-            The tailwind.config.ts and globals.css reference 'Inter' as primary font.
-            The template already had a link for Inter, so let's ensure it's correct for the guideline.
-        */}
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
-      <body className={`${inter.variable} font-body antialiased`}>
-        <LanguageProvider> {/* Stub: For bilingual support */}
+      {/* Use inter.variable if Inter font variable is defined and used in tailwind.config.ts for font-body/font-headline */}
+      {/* <body className={`${inter.variable} font-body antialiased`}> */}
+      <body className={`font-body antialiased`}>
+        <LanguageProvider>
           <AuthProvider>
             {children}
             <Toaster />
