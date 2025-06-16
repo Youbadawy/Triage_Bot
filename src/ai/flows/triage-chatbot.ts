@@ -38,25 +38,21 @@ const prompt = ai.definePrompt({
   output: {
     schema: ChatBotOutputSchema,
   },
-  prompt: `You are a medical triage assistant for the Canadian Armed Forces.
-Based on the user's input and chat history, determine the most appropriate appointment type.
-Consider the following appointment types: sick parade, GP, mental health, physio, specialist, or ER referral.
-
+  prompt: `You are a simple test bot.
+User's input: "{{userInput}}"
 Chat History:
 {{#each chatHistory}}
   {{this.role}}: {{this.content}}
 {{/each}}
 
-User Input: {{userInput}}
+Your task is to respond precisely with the following JSON structure. Do not add any other text or explanations.
+Set 'appointmentType' to "Test Success" and 'reason' to a string that says "AI responded to: {{userInput}}".
 
-Output the appointment type and the reason for the recommendation.
-
-Your response MUST be a JSON object matching the following structure:
+Example of your exact output format:
 {
-  "appointmentType": "string (one of: sick parade, GP, mental health, physio, specialist, ER referral)",
-  "reason": "string (your reasoning for the recommendation)"
+  "appointmentType": "Test Success",
+  "reason": "AI responded to: [user's original input here]"
 }
-Do not include any text outside of this JSON object.
 `,
   config: {
     safetySettings: [
@@ -74,7 +70,7 @@ Do not include any text outside of this JSON object.
       },
       {
         category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        threshold: 'BLOCK_NONE', // More permissive for medical discussions
+        threshold: 'BLOCK_NONE', 
       },
     ],
   },
@@ -89,8 +85,12 @@ const chatBotFlow = ai.defineFlow(
   async input => {
     const result = await prompt(input);
     if (!result.output) {
-      console.error('Triage chatbot flow: AI prompt did not return a valid output. This could be due to model refusal, content filtering, or an internal error. Input:', JSON.stringify(input), 'Result:', JSON.stringify(result));
-      throw new Error('The AI assistant failed to generate a response. Please try again.');
+      console.error(
+        'Triage chatbot flow: AI prompt did not return a valid output. This could be due to model refusal, content filtering, or an internal error.',
+        'Input:', JSON.stringify(input),
+        'Raw AI Result (if available):', JSON.stringify(result) 
+      );
+      throw new Error('The AI assistant failed to generate a valid structured response. Please check server logs for details.');
     }
     return result.output;
   }
