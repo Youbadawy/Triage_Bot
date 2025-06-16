@@ -51,8 +51,33 @@ User Input: {{userInput}}
 
 Output the appointment type and the reason for the recommendation.
 
-Make sure to output in JSON format.
+Your response MUST be a JSON object matching the following structure:
+{
+  "appointmentType": "string (one of: sick parade, GP, mental health, physio, specialist, ER referral)",
+  "reason": "string (your reasoning for the recommendation)"
+}
+Do not include any text outside of this JSON object.
 `,
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_HATE_SPEECH',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_NONE', // More permissive for medical discussions
+      },
+    ],
+  },
 });
 
 const chatBotFlow = ai.defineFlow(
@@ -64,12 +89,9 @@ const chatBotFlow = ai.defineFlow(
   async input => {
     const result = await prompt(input);
     if (!result.output) {
-      console.error('Triage chatbot flow: AI prompt did not return a valid output. This could be due to model refusal, content filtering, or an internal error.');
-      // Throwing an error here will be caught by the calling action (processChatMessage)
-      // and result in a system error message to the user.
+      console.error('Triage chatbot flow: AI prompt did not return a valid output. This could be due to model refusal, content filtering, or an internal error. Input:', JSON.stringify(input), 'Result:', JSON.stringify(result));
       throw new Error('The AI assistant failed to generate a response. Please try again.');
     }
     return result.output;
   }
 );
-
