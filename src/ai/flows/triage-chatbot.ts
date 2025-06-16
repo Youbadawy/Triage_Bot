@@ -62,7 +62,14 @@ const chatBotFlow = ai.defineFlow(
     outputSchema: ChatBotOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const result = await prompt(input);
+    if (!result.output) {
+      console.error('Triage chatbot flow: AI prompt did not return a valid output. This could be due to model refusal, content filtering, or an internal error.');
+      // Throwing an error here will be caught by the calling action (processChatMessage)
+      // and result in a system error message to the user.
+      throw new Error('The AI assistant failed to generate a response. Please try again.');
+    }
+    return result.output;
   }
 );
+
