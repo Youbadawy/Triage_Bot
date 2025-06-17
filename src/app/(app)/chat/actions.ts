@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -31,18 +32,11 @@ export async function processChatMessage(input: z.infer<typeof ChatActionInputSc
     };
 
     const aiOutput: AIChatOutput = await chatBot(aiInput);
-
-    // const userMessage: ChatMessage = {
-    //   id: crypto.randomUUID(),
-    //   role: 'user',
-    //   content: validatedInput.userInput,
-    //   timestamp: new Date(),
-    // };
     
     const assistantMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'assistant',
-      content: `${aiOutput.reason} Recommended: ${aiOutput.appointmentType}`,
+      content: aiOutput.reason, // The AI's detailed reason is now the full conversational response
       timestamp: new Date(),
     };
 
@@ -60,9 +54,16 @@ export async function processChatMessage(input: z.infer<typeof ChatActionInputSc
         error: 'Invalid input: ' + error.errors.map(e => e.message).join(', ')
       };
     }
+    // Check if it's an error from our custom chatbot flow error handling
+    if (error && typeof (error as any).appointmentType === 'string' && (error as any).appointmentType === 'Error') {
+        return {
+            aiResponse: {id: crypto.randomUUID(), role: 'system', content: (error as any).reason, timestamp: new Date()},
+            error: (error as any).reason
+        };
+    }
     return { 
-        aiResponse: {id: crypto.randomUUID(), role: 'system', content: 'Sorry, I encountered an error. Please try again later.', timestamp: new Date()},
-        error: 'AI service error or other internal error.'
+        aiResponse: {id: crypto.randomUUID(), role: 'system', content: 'Sorry, I encountered an error processing your message. Please try again later.', timestamp: new Date()},
+        error: 'AI service error or other internal error processing the message.'
     };
   }
 }
