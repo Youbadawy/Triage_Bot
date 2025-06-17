@@ -98,7 +98,10 @@ export default function ChatPage() {
     };
     setMessages((prevMessages) => [...prevMessages, newUserMessage]);
     setIsLoading(true);
-    setRecommendation(null);
+    // Keep the previous recommendation visible while waiting for new AI response,
+    // or clear it if you prefer it to disappear immediately.
+    // For a more seamless follow-up, let's keep it for now.
+    // setRecommendation(null); 
 
     const chatHistoryForAI = messages
       .filter(msg => msg.role === 'user' || msg.role === 'assistant')
@@ -189,7 +192,8 @@ export default function ChatPage() {
               <RecommendationDisplay recommendation={recommendation} />
             </div>
           )}
-          {!isEmergency && !recommendation && (
+          {/* Show ChatInputForm unless it's an emergency */}
+          {!isEmergency && (
             <ChatInputForm 
               onSubmit={handleSubmitMessage} 
               isLoading={isLoading}
