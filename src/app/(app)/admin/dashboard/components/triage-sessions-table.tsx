@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { TriageSession } from '@/types';
@@ -12,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, MessageCircle, AlertTriangle } from 'lucide-react';
+import { Eye, MessageCircle, AlertTriangle, FileText } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-context';
 import { format } from 'date-fns';
 import { fr as frLocale, enUS as enLocale } from 'date-fns/locale';
@@ -21,9 +22,10 @@ import { fr as frLocale, enUS as enLocale } from 'date-fns/locale';
 interface TriageSessionsTableProps {
   sessions: TriageSession[];
   onViewDetails: (session: TriageSession) => void;
+  onPrepareForClinic: (session: TriageSession) => void; // New prop
 }
 
-export function TriageSessionsTable({ sessions, onViewDetails }: TriageSessionsTableProps) {
+export function TriageSessionsTable({ sessions, onViewDetails, onPrepareForClinic }: TriageSessionsTableProps) {
   const { t, language } = useLanguage();
 
   const formatDate = (date: any) => { // date can be Timestamp or Date
@@ -41,12 +43,12 @@ export function TriageSessionsTable({ sessions, onViewDetails }: TriageSessionsT
         <TableCaption>{t('triageSessionsListDesc') || 'A list of recent triage sessions.'}</TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[200px]">{t('tableHeaderTimestamp') || 'Timestamp'}</TableHead>
+            <TableHead className="w-[180px]">{t('tableHeaderTimestamp') || 'Timestamp'}</TableHead>
             <TableHead>{t('tableHeaderUserID') || 'User ID'}</TableHead>
             <TableHead>{t('tableHeaderRecommendation') || 'Recommendation'}</TableHead>
             <TableHead className="text-center">{t('tableHeaderLanguage') || 'Language'}</TableHead>
             <TableHead className="text-center">{t('tableHeaderEmergency') || 'Emergency'}</TableHead>
-            <TableHead className="text-right">{t('tableHeaderActions') || 'Actions'}</TableHead>
+            <TableHead className="text-right w-[260px]">{t('tableHeaderActions') || 'Actions'}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -69,10 +71,14 @@ export function TriageSessionsTable({ sessions, onViewDetails }: TriageSessionsT
                   <MessageCircle className="h-5 w-5 text-green-600 mx-auto" />
                 )}
               </TableCell>
-              <TableCell className="text-right">
-                <Button variant="ghost" size="sm" onClick={() => onViewDetails(session)}>
+              <TableCell className="text-right space-x-1">
+                <Button variant="ghost" size="sm" onClick={() => onViewDetails(session)} title={t('viewDetailsButton') || 'View Details'}>
                   <Eye className="mr-2 h-4 w-4" />
                   {t('viewDetailsButton') || 'View'}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => onPrepareForClinic(session)} title={t('prepareForClinicButton') || 'Prepare for Clinic'}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  {t('prepareForClinicButtonShort') || 'Prep Clinic'}
                 </Button>
               </TableCell>
             </TableRow>

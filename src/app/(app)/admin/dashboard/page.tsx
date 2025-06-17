@@ -1,9 +1,11 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import type { TriageSession } from '@/types';
 import { TriageSessionsTable } from './components/triage-sessions-table';
 import { TriageSessionDetails } from './components/triage-session-details';
+import { PrepareForClinicModal } from './components/prepare-for-clinic-modal'; // New import
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { useAuth } from '@/contexts/auth-context';
 import { useLanguage } from '@/contexts/language-context';
@@ -15,23 +17,23 @@ import { AlertTriangle, ListChecks } from "lucide-react";
 const SESSIONS_LIMIT = 50; // Number of sessions to fetch
 
 export default function AdminDashboardPage() {
-  const { isAdmin } = useAuth(); // Already checked by layout, but good for completeness
+  const { isAdmin } = useAuth();
   const { t } = useLanguage();
 
   const [sessions, setSessions] = useState<TriageSession[]>([]);
-  const [selectedSession, setSelectedSession] = useState<TriageSession | null>(null);
+  const [selectedSessionForDetails, setSelectedSessionForDetails] = useState<TriageSession | null>(null);
+  const [selectedSessionForClinic, setSelectedSessionForClinic] = useState<TriageSession | null>(null); // New state
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAdmin) return; // Should be handled by layout, but defensive check
+    if (!isAdmin) return;
 
     const fetchSessions = async () => {
       setIsLoading(true);
       setError(null);
       try {
         const sessionsCol = collection(db, 'triageSessions');
-        // Order by timestamp descending, limit results for performance
         const q = query(sessionsCol, orderBy('timestamp', 'desc'), limit(SESSIONS_LIMIT));
         const snapshot = await getDocs(q);
         const sessionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TriageSession));
@@ -48,11 +50,19 @@ export default function AdminDashboardPage() {
   }, [isAdmin, t]);
 
   const handleViewDetails = (session: TriageSession) => {
-    setSelectedSession(session);
+    setSelectedSessionForDetails(session);
   };
 
   const handleCloseDetails = () => {
-    setSelectedSession(null);
+    setSelectedSessionForDetails(null);
+  };
+
+  const handlePrepareForClinic = (session: TriageSession) => { // New handler
+    setSelectedSessionForClinic(session);
+  };
+
+  const handleClosePrepareForClinic = () => { // New handler
+    setSelectedSessionForClinic(null);
   };
 
   if (isLoading) {
@@ -71,7 +81,6 @@ export default function AdminDashboardPage() {
           <ListChecks className="w-8 h-8 mr-3 text-primary" />
           {t('adminDashboard')}
         </h1>
-        {/* Add any actions like refresh button here */}
       </div>
       
       {error && (
@@ -82,13 +91,27 @@ export default function AdminDashboardPage() {
         </Alert>
       )}
 
-      {!error && <TriageSessionsTable sessions={sessions} onViewDetails={handleViewDetails} />}
+      {!error && 
+        <TriageSessionsTable 
+          sessions={sessions} 
+          onViewDetails={handleViewDetails} 
+          onPrepareForClinic={handlePrepareForClinic} // Pass new handler
+        />
+      }
 
-      {selectedSession && (
+      {selectedSessionForDetails && (
         <TriageSessionDetails
-          session={selectedSession}
-          isOpen={!!selectedSession}
+          session={selectedSessionForDetails}
+          isOpen={!!selectedSessionForDetails}
           onClose={handleCloseDetails}
+        />
+      )}
+
+      {selectedSessionForClinic && ( // Render new modal
+        <PrepareForClinicModal
+          session={selectedSessionForClinic}
+          isOpen={!!selectedSessionForClinic}
+          onClose={handleClosePrepareForClinic}
         />
       )}
     </div>
