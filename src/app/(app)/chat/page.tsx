@@ -13,7 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, PanelRightOpen, PanelRightClose } from 'lucide-react';
 
 const MAX_CHAT_HISTORY_FOR_AI = 10; // Max messages (user + assistant pairs) to send to AI
 
@@ -27,6 +28,7 @@ export default function ChatPage() {
   const [recommendation, setRecommendation] = useState<AppointmentRecommendation | null>(null);
   const [isEmergency, setIsEmergency] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isRecommendationSidebarOpen, setIsRecommendationSidebarOpen] = useState(true);
 
 
   useEffect(() => {
@@ -45,6 +47,7 @@ export default function ChatPage() {
     setRecommendation(null);
     setIsEmergency(false);
     setSessionId(null); 
+    setIsRecommendationSidebarOpen(true); // Reset sidebar state on language change
   }, [language, t]); 
 
   const handleEmergencyKeywordDetected = () => {
@@ -59,6 +62,7 @@ export default function ChatPage() {
       },
     ]);
     setRecommendation(null); 
+    setIsRecommendationSidebarOpen(false); // Hide sidebar in emergency
   };
 
   const saveTriageSessionToFirestore = useCallback(async (finalMessages: ChatMessage[], finalRecommendation: AppointmentRecommendation, emergencyDetected: boolean) => {
@@ -136,6 +140,7 @@ export default function ChatPage() {
 
       if (result.recommendation) {
         setRecommendation(result.recommendation);
+        setIsRecommendationSidebarOpen(true); // Open sidebar when new recommendation arrives
         const updatedMessages = [...messages, newUserMessage, aiResponseMsg];
         const newSessionId = await saveTriageSessionToFirestore(updatedMessages, result.recommendation, isEmergency);
         if (newSessionId) setSessionId(newSessionId);
@@ -165,16 +170,28 @@ export default function ChatPage() {
     <div className="container mx-auto flex h-[calc(100vh-4rem)] max-w-3xl lg:max-w-5xl flex-col py-4">
       <Card className="flex flex-1 flex-col overflow-hidden shadow-xl">
         <CardHeader className="border-b">
-          <CardTitle className="text-xl font-headline text-center text-primary">
-            {t('chatWithAI')}
-          </CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-xl font-headline text-center text-primary">
+              {t('chatWithAI')}
+            </CardTitle>
+            {recommendation && !isEmergency && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setIsRecommendationSidebarOpen(!isRecommendationSidebarOpen)}
+                className="hidden md:inline-flex" // Only show toggle on md screens and up
+                aria-label={isRecommendationSidebarOpen ? "Close recommendation panel" : "Open recommendation panel"}
+              >
+                {isRecommendationSidebarOpen ? <PanelRightClose size={20} /> : <PanelRightOpen size={20} />}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         
         <CardContent className="flex flex-1 p-0 overflow-hidden">
-          <div className="flex flex-1 flex-row"> {/* Main flex container for chat and optional sidebar */}
+          <div className="flex flex-1 flex-row">
             
-            {/* Primary Chat Area (Messages & Input) */}
-            <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden"> {/* Main chat area takes remaining space */}
               {isEmergency && (
                  <div className="bg-destructive/10 p-4 text-destructive border-b border-destructive">
                     <div className="flex items-center font-semibold">
@@ -204,9 +221,9 @@ export default function ChatPage() {
               )}
             </div>
 
-            {/* Sidebar Recommendation Area for medium screens and up (md:block) */}
-            {recommendation && !isEmergency && (
-              <div className="hidden md:flex md:flex-col w-80 lg:w-96 border-l bg-card overflow-y-auto">
+            {/* Collapsible Sidebar Recommendation Area for medium screens and up */}
+            {isRecommendationSidebarOpen && recommendation && !isEmergency && (
+              <div className="hidden md:flex md:flex-col w-80 lg:w-96 border-l bg-card overflow-y-auto transition-all duration-300 ease-in-out">
                 <div className="p-4">
                     <RecommendationDisplay recommendation={recommendation} />
                 </div>
