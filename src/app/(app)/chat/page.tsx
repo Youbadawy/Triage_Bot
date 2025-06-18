@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { ChatMessage, AppointmentRecommendation } from '@/types';
 import { ChatMessages } from './components/chat-messages';
 import { ChatInputForm } from './components/chat-input-form';
-import { RecommendationDisplay } from './components/recommendation-display';
+// RecommendationDisplay component is no longer imported
 import { processChatMessage } from './actions';
 import { useAuth } from '@/contexts/auth-context';
 import { useLanguage } from '@/contexts/language-context';
@@ -13,8 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, PanelRightOpen, PanelRightClose } from 'lucide-react';
+// Button for sidebar toggle is removed
+import { AlertTriangle } from 'lucide-react'; // PanelRightOpen, PanelRightClose removed
 
 const MAX_CHAT_HISTORY_FOR_AI = 10; // Max messages (user + assistant pairs) to send to AI
 
@@ -25,10 +25,11 @@ export default function ChatPage() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  // recommendation state is kept for saving to Firestore, but not for direct display via RecommendationDisplay
   const [recommendation, setRecommendation] = useState<AppointmentRecommendation | null>(null);
   const [isEmergency, setIsEmergency] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [isRecommendationSidebarOpen, setIsRecommendationSidebarOpen] = useState(true);
+  // isRecommendationSidebarOpen state is removed
 
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export default function ChatPage() {
     setRecommendation(null);
     setIsEmergency(false);
     setSessionId(null); 
-    setIsRecommendationSidebarOpen(true); 
+    // setIsRecommendationSidebarOpen(true); // Removed
   }, [language, t]); 
 
   const handleEmergencyKeywordDetected = () => {
@@ -62,7 +63,7 @@ export default function ChatPage() {
       },
     ]);
     setRecommendation(null); 
-    setIsRecommendationSidebarOpen(false); 
+    // setIsRecommendationSidebarOpen(false); // Removed
   };
 
   const saveTriageSessionToFirestore = useCallback(async (finalMessages: ChatMessage[], finalRecommendation: AppointmentRecommendation, emergencyDetected: boolean) => {
@@ -72,7 +73,7 @@ export default function ChatPage() {
         userId: user.uid,
         timestamp: serverTimestamp(),
         chatHistory: finalMessages.map(m => ({ role: m.role, content: m.content, timestamp: m.timestamp || new Date() })),
-        recommendation: finalRecommendation,
+        recommendation: finalRecommendation, // The core recommendation (e.g., { appointmentType: "GP", reason: "AI full response" })
         language: language,
         emergencyAlertTriggered: emergencyDetected,
       };
@@ -135,13 +136,18 @@ export default function ChatPage() {
         return;
       }
       
+      // The AI's full conversational response (which includes recommendation, reason, next steps, and scheduling info)
+      // is in result.aiResponse.content (which itself comes from aiOutput.reason)
       const aiResponseMsg = result.aiResponse;
       setMessages((prevMessages) => [...prevMessages, aiResponseMsg]);
 
       if (result.recommendation) {
-        setRecommendation(result.recommendation);
-        setIsRecommendationSidebarOpen(true); 
+        // Set the core recommendation (appointmentType and full reason text) for saving
+        setRecommendation(result.recommendation); 
+        // setIsRecommendationSidebarOpen(true); // Removed
+        
         const updatedMessages = [...messages, newUserMessage, aiResponseMsg];
+        // Pass result.recommendation which is AIChatOutput { appointmentType: string, reason: string }
         const newSessionId = await saveTriageSessionToFirestore(updatedMessages, result.recommendation, isEmergency);
         if (newSessionId) setSessionId(newSessionId);
       }
@@ -167,68 +173,43 @@ export default function ChatPage() {
   };
 
   return (
-    // Removed container and max-width, SidebarInset should manage this. Added py-4 for vertical padding.
     <div className="flex h-[calc(100vh-4rem)] flex-col py-4 px-2 sm:px-4"> 
       <Card className="flex flex-1 flex-col overflow-hidden shadow-xl">
         <CardHeader className="border-b">
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-xl font-headline text-center text-primary">
+          <div className="flex justify-center items-center"> {/* Centering title as sidebar toggle is removed */}
+            <CardTitle className="text-xl font-headline text-primary">
               {t('chatWithAI')}
             </CardTitle>
-            {recommendation && !isEmergency && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setIsRecommendationSidebarOpen(!isRecommendationSidebarOpen)}
-                className="hidden md:inline-flex" 
-                aria-label={isRecommendationSidebarOpen ? "Close recommendation panel" : "Open recommendation panel"}
-              >
-                {isRecommendationSidebarOpen ? <PanelRightClose size={20} /> : <PanelRightOpen size={20} />}
-              </Button>
-            )}
+            {/* Sidebar toggle button removed */}
           </div>
         </CardHeader>
         
         <CardContent className="flex flex-1 p-0 overflow-hidden">
-          <div className="flex flex-1 flex-row">
-            
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {isEmergency && (
-                 <div className="bg-destructive/10 p-4 text-destructive border-b border-destructive">
-                    <div className="flex items-center font-semibold">
-                        <AlertTriangle className="h-5 w-5 mr-2" />
-                        {t('emergencyTitle')}
-                    </div>
-                    <p className="text-sm mt-1">{t('emergencyMessage')}</p>
-                </div>
-              )}
-              <ChatMessages messages={messages} isLoading={isLoading && !isEmergency} />
-              
-              <div className="block md:hidden">
-                {recommendation && !isEmergency && (
-                  <div className="p-4 border-t bg-card">
-                    <RecommendationDisplay recommendation={recommendation} />
+          {/* Removed flex-row structure for sidebar */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {isEmergency && (
+                <div className="bg-destructive/10 p-4 text-destructive border-b border-destructive">
+                  <div className="flex items-center font-semibold">
+                      <AlertTriangle className="h-5 w-5 mr-2" />
+                      {t('emergencyTitle')}
                   </div>
-                )}
-              </div>
-
-              {!isEmergency && (
-                <ChatInputForm 
-                  onSubmit={handleSubmitMessage} 
-                  isLoading={isLoading}
-                  onEmergencyKeywordDetected={handleEmergencyKeywordDetected}
-                />
-              )}
-            </div>
-
-            {isRecommendationSidebarOpen && recommendation && !isEmergency && (
-              <div className="hidden md:flex md:flex-col w-80 lg:w-96 border-l bg-muted/20 overflow-y-auto transition-all duration-300 ease-in-out">
-                <div className="p-4">
-                    <RecommendationDisplay recommendation={recommendation} />
-                </div>
+                  <p className="text-sm mt-1">{t('emergencyMessage')}</p>
               </div>
             )}
+            <ChatMessages messages={messages} isLoading={isLoading && !isEmergency} />
+            
+            {/* Removed inline RecommendationDisplay for mobile, as it's now part of the chat flow */}
+
+            {!isEmergency && (
+              <ChatInputForm 
+                onSubmit={handleSubmitMessage} 
+                isLoading={isLoading}
+                onEmergencyKeywordDetected={handleEmergencyKeywordDetected}
+              />
+            )}
           </div>
+
+          {/* Recommendation sidebar div completely removed */}
         </CardContent>
       </Card>
     </div>
