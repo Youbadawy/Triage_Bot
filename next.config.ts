@@ -19,9 +19,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  allowedDevOrigins: ['https://6000-firebase-studio-1750019949190.cluster-f4iwdviaqvc2ct6pgytzw4xqy4.cloudworkstations.dev'],
-  // The 'experimental' block containing 'allowedDevOrigins' was previously removed
-  // as it caused "Unrecognized key(s)" error. This is a new attempt to place it at the top level.
+  // allowedDevOrigins removed as it was causing issues or not properly recognized.
+  // The "Cross origin request detected" is a warning and does not prevent server startup.
 };
 
 export default nextConfig;
