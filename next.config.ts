@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -18,10 +19,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // The 'experimental' block containing 'allowedDevOrigins' was removed
-  // as it caused "Unrecognized key(s)" error.
-  // We can re-evaluate how to set allowedDevOrigins if the warning persists
-  // and is problematic.
+  allowedDevOrigins: ['https://6000-firebase-studio-1750019949190.cluster-f4iwdviaqvc2ct6pgytzw4xqy4.cloudworkstations.dev'],
+  // The 'experimental' block containing 'allowedDevOrigins' was previously removed
+  // as it caused "Unrecognized key(s)" error. This is a new attempt to place it at the top level.
 };
 
 export default nextConfig;
