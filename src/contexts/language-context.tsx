@@ -46,7 +46,7 @@ const translations: Record<Language, Record<string, string>> = {
     dontHaveAccount: "Don't have an account?",
     alreadyHaveAccount: "Already have an account?",
     triageResults: "Triage Results",
-    triageResultsDescription: "Based on your symptoms, here is our recommendation:",
+    triageResultsDescription: "Based on your input, here is our recommendation:",
     recommendation: "Recommendation",
     reasonLabel: "Reason",
     emergencyTitle: "EMERGENCY",
@@ -117,6 +117,10 @@ const translations: Record<Language, Record<string, string>> = {
     copyToClipboardFailed: "Failed to copy.",
     noChatHistoryAvailable: "No chat history available.",
     invalidDate: "Invalid Date",
+    schedulingSidebarTitle: "Next Steps", // Added for scheduling sidebar
+    appointmentTypeLabel: "Appointment Type:", // Added for scheduling sidebar
+    scheduleButton: "Schedule Appointment", // Added for scheduling sidebar
+    scheduleFunctionalityComingSoon: "Scheduling functionality is coming soon!",
   },
   fr: {
     appName: "CAF MedRoute",
@@ -149,7 +153,7 @@ const translations: Record<Language, Record<string, string>> = {
     dontHaveAccount: "Pas de compte ?",
     alreadyHaveAccount: "Déjà un compte ?",
     triageResults: "Résultats du triage",
-    triageResultsDescription: "En fonction de vos symptômes, voici notre recommandation :",
+    triageResultsDescription: "En fonction de votre saisie, voici notre recommandation :",
     recommendation: "Recommandation",
     reasonLabel: "Raison",
     emergencyTitle: "URGENCE",
@@ -220,6 +224,10 @@ const translations: Record<Language, Record<string, string>> = {
     copyToClipboardFailed: "Échec de la copie.",
     noChatHistoryAvailable: "Aucun historique de clavardage disponible.",
     invalidDate: "Date invalide",
+    schedulingSidebarTitle: "Prochaines étapes", // Added for scheduling sidebar
+    appointmentTypeLabel: "Type de rendez-vous :", // Added for scheduling sidebar
+    scheduleButton: "Planifier un rendez-vous", // Added for scheduling sidebar
+    scheduleFunctionalityComingSoon: "La fonctionnalité de planification sera bientôt disponible !",
   },
 };
 

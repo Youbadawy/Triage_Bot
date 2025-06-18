@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { ChatMessage, AppointmentRecommendation } from '@/types';
 import { ChatMessages } from './components/chat-messages';
 import { ChatInputForm } from './components/chat-input-form';
-import { SchedulingSidebar } from './components/scheduling-sidebar';
+import { SchedulingSidebar } from './components/scheduling-sidebar'; // New component
 import { processChatMessage } from './actions';
 import { useAuth } from '@/contexts/auth-context';
 import { useLanguage } from '@/contexts/language-context';
@@ -14,7 +14,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react'; // PanelRightOpen, PanelRightClose removed as sidebar is not collapsible for now
 
 const MAX_CHAT_HISTORY_FOR_AI = 10; // Max messages (user + assistant pairs) to send to AI
 
@@ -28,8 +28,7 @@ export default function ChatPage() {
   const [recommendation, setRecommendation] = useState<AppointmentRecommendation | null>(null);
   const [isEmergency, setIsEmergency] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [isRecommendationSidebarOpen, setIsRecommendationSidebarOpen] = useState(false);
-
+  // isRecommendationSidebarOpen state is implicitly handled by presence of recommendation
 
   useEffect(() => {
     const initialMessageContent = language === 'fr' 
@@ -47,7 +46,6 @@ export default function ChatPage() {
     setRecommendation(null);
     setIsEmergency(false);
     setSessionId(null); 
-    setIsRecommendationSidebarOpen(false);
   }, [language, t]); 
 
   const handleEmergencyKeywordDetected = () => {
@@ -62,7 +60,6 @@ export default function ChatPage() {
       },
     ]);
     setRecommendation(null); 
-    setIsRecommendationSidebarOpen(false);
   };
 
   const saveTriageSessionToFirestore = useCallback(async (finalMessages: ChatMessage[], finalRecommendation: AppointmentRecommendation, emergencyDetected: boolean) => {
@@ -101,6 +98,8 @@ export default function ChatPage() {
     };
     setMessages((prevMessages) => [...prevMessages, newUserMessage]);
     setIsLoading(true);
+    // Clear previous recommendation before new message processing
+    // setRecommendation(null); 
 
     const chatHistoryForAI = messages
       .filter(msg => msg.role === 'user' || msg.role === 'assistant')
@@ -140,7 +139,6 @@ export default function ChatPage() {
 
       if (result.recommendation) {
         setRecommendation(result.recommendation); 
-        setIsRecommendationSidebarOpen(true);
         
         const updatedMessages = [...messages, newUserMessage, aiResponseMsg];
         const newSessionId = await saveTriageSessionToFirestore(updatedMessages, result.recommendation, isEmergency);
@@ -175,15 +173,12 @@ export default function ChatPage() {
             <CardTitle className="text-xl font-headline text-primary">
               {t('chatWithAI')}
             </CardTitle>
-            {recommendation && (
-              <Button variant="ghost" size="icon" onClick={() => setIsRecommendationSidebarOpen(!isRecommendationSidebarOpen)}>
-                {isRecommendationSidebarOpen ? <PanelRightClose /> : <PanelRightOpen />}
-              </Button>
-            )}
+            {/* Sidebar toggle button removed for now, sidebar visibility depends on recommendation */}
           </div>
         </CardHeader>
         
         <CardContent className="flex flex-1 p-0 overflow-hidden">
+          {/* Main chat area */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {isEmergency && (
                 <div className="bg-destructive/10 p-4 text-destructive border-b border-destructive">
@@ -205,11 +200,14 @@ export default function ChatPage() {
             )}
           </div>
 
-          <SchedulingSidebar
-            recommendation={recommendation}
-            isOpen={isRecommendationSidebarOpen}
-            onClose={() => setIsRecommendationSidebarOpen(false)}
-          />
+          {/* Scheduling Sidebar - shown if recommendation exists and not an emergency */}
+          {recommendation && !isEmergency && (
+            <SchedulingSidebar
+              recommendation={recommendation}
+              // isOpen prop is not needed if always shown when recommendation exists
+              onClose={() => setRecommendation(null)} // Example: allow closing/clearing the recommendation
+            />
+          )}
         </CardContent>
       </Card>
     </div>

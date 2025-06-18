@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { AppointmentRecommendation } from '@/types';
@@ -9,6 +10,9 @@ interface RecommendationDisplayProps {
   recommendation: AppointmentRecommendation | null;
 }
 
+// This component is currently not used in chat/page.tsx as the functionality
+// has been integrated into SchedulingSidebar or directly into chat messages.
+// It's kept here in case it's needed for other display purposes or future refactoring.
 export function RecommendationDisplay({ recommendation }: RecommendationDisplayProps) {
   const { t } = useLanguage();
 
@@ -39,7 +43,7 @@ export function RecommendationDisplay({ recommendation }: RecommendationDisplayP
           </p>
         </div>
         <div>
-          <h4 className="font-semibold text-base">{t('reason')}:</h4>
+          <h4 className="font-semibold text-base">{t('reasonLabel')}:</h4>
           <p className="text-muted-foreground">{recommendation.reason}</p>
         </div>
         {isERReferral && (
