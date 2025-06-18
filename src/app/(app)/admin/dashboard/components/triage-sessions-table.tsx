@@ -11,9 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Badge, badgeVariants } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, MessageCircle, AlertTriangle, FileText, CalendarClock, UserSquare, LanguagesIcon, HelpCircle } from 'lucide-react';
+import { Eye, MessageCircle, AlertTriangle, FileText, CalendarClock, UserSquare, LanguagesIcon, HelpCircle, BrainCircuit } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-context';
 import { format } from 'date-fns';
 import { fr as frLocale, enUS as enLocale } from 'date-fns/locale';
@@ -48,6 +48,19 @@ export function TriageSessionsTable({ sessions, onViewDetails, onPrepareForClini
     return format(dateObj, 'MMM d, yyyy HH:mm', { locale: language === 'fr' ? frLocale : enLocale });
   };
 
+  const getComplexityVariant = (complexity: 'easy' | 'medium' | 'complex' | undefined): "default" | "secondary" | "destructive" | "outline" => {
+    switch (complexity) {
+      case 'easy':
+        return 'default';
+      case 'medium':
+        return 'secondary';
+      case 'complex':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
+
   if (sessions.length === 0) {
     return <p className="text-center text-muted-foreground py-8">{t('noTriageSessions') || 'No triage sessions found.'}</p>;
   }
@@ -61,6 +74,8 @@ export function TriageSessionsTable({ sessions, onViewDetails, onPrepareForClini
             <TableHead className="w-[160px] sm:w-[180px]"><CalendarClock className="inline-block mr-1 h-4 w-4 text-muted-foreground" />{t('tableHeaderTimestamp') || 'Timestamp'}</TableHead>
             <TableHead><UserSquare className="inline-block mr-1 h-4 w-4 text-muted-foreground" />{t('tableHeaderUserID') || 'User ID'}</TableHead>
             <TableHead><HelpCircle className="inline-block mr-1 h-4 w-4 text-muted-foreground" />{t('tableHeaderRecommendation') || 'Recommendation'}</TableHead>
+            <TableHead>{t('tableHeaderReason') || 'Reason'}</TableHead>
+            <TableHead><BrainCircuit className="inline-block mr-1 h-4 w-4 text-muted-foreground" />{t('tableHeaderComplexity') || 'Complexity'}</TableHead>
             <TableHead className="text-center hidden md:table-cell"><LanguagesIcon className="inline-block mr-1 h-4 w-4 text-muted-foreground" />{t('tableHeaderLanguage') || 'Language'}</TableHead>
             <TableHead className="text-center"><AlertTriangle className="inline-block mr-1 h-4 w-4 text-muted-foreground" />{t('tableHeaderEmergency') || 'Emergency'}</TableHead>
             <TableHead className="text-right w-[180px] sm:w-[220px]">{t('tableHeaderActions') || 'Actions'}</TableHead>
@@ -81,6 +96,12 @@ export function TriageSessionsTable({ sessions, onViewDetails, onPrepareForClini
                   className="text-xs sm:text-sm capitalize"
                 >
                   {session.recommendation?.appointmentType || t('notAvailableShort') || 'N/A'}
+                </Badge>
+              </TableCell>
+              <TableCell className="truncate max-w-[200px] text-xs sm:text-sm py-3">{session.recommendation?.reason || t('notAvailableShort') || 'N/A'}</TableCell>
+              <TableCell>
+                <Badge variant={getComplexityVariant(session.recommendation?.complexity)} className="text-xs sm:text-sm capitalize">
+                  {session.recommendation?.complexity || t('notAvailableShort') || 'N/A'}
                 </Badge>
               </TableCell>
               <TableCell className="text-center hidden md:table-cell py-3">

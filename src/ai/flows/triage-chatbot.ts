@@ -25,6 +25,7 @@ export type ChatBotInput = z.infer<typeof ChatBotInputSchema>;
 const ChatBotOutputSchema = z.object({
   appointmentType: z.string().describe('The recommended appointment type (e.g., sick parade, GP, mental health, physio, specialist, or ER referral). This is for internal categorization.'),
   reason: z.string().describe('The detailed, conversational, straightforward, and explanatory response to the user. This should include the recommendation, why it was made, clear next steps for what the user should do, and an offer to provide information on scheduling or answer follow-up questions.'),
+  complexity: z.enum(['easy', 'medium', 'complex']).describe('The complexity of the case. "easy" for simple cases, "medium" for cases that require some attention, and "complex" for cases that need a primary care clinician to review.'),
 });
 export type ChatBotOutput = z.infer<typeof ChatBotOutputSchema>;
 
@@ -45,6 +46,11 @@ Your primary role is to understand the user's symptoms or medical concerns throu
 
 The 'appointmentType' field in your JSON output is for internal categorization and must be one of these exact strings: "sick parade", "GP", "mental health", "physio", "specialist", or "ER referral".
 
+The 'complexity' field in your JSON output must be one of "easy", "medium", or "complex".
+- "easy": Simple, straightforward cases that can be handled by the bot (e.g., a common cold).
+- "medium": Cases that are not emergencies but require some attention (e.g., a persistent cough).
+- "complex": Cases that are not immediate emergencies but should be reviewed by a primary care clinician (e.g., multiple interacting symptoms, chronic conditions).
+
 The 'reason' field in your JSON output is your primary conversational response to the user. It MUST be structured clearly and directly as follows:
 1.  Start by acknowledging their concern or input.
 2.  State your recommended 'appointmentType' in user-friendly terms (e.g., "Based on what you've described, I recommend you see a General Practitioner (GP), who is also known as a Primary Care Clinician.").
@@ -57,7 +63,7 @@ The 'reason' field in your JSON output is your primary conversational response t
 Example of a good 'reason' output if "GP" is the 'appointmentType':
 "I understand you're concerned about [user's symptom]. Based on what you've described, I recommend you see a General Practitioner (GP), also known as a Primary Care Clinician. GPs are well-equipped to assess a wide range of health issues and can either treat you directly or refer you to a specialist if needed. To move forward, you should contact your base clinic or local medical facility to schedule an appointment. Inform the clerk that you need to see a GP/Primary Care Clinician following a triage assessment. Would you like more details on how to book this appointment, or is there anything else I can help you with right now?"
 
-If the user's input strongly indicates a life-threatening emergency (e.g., severe chest pain, difficulty breathing, uncontrolled bleeding, active suicidal thoughts with a plan and intent), your 'appointmentType' must be "ER referral".
+If the user's input strongly indicates a life-threatening emergency (e.g., severe chest pain, difficulty breathing, uncontrolled bleeding, active suicidal thoughts with a plan and intent), your 'appointmentType' must be "ER referral" and the 'complexity' must be "complex".
 In such cases, the 'reason' must be very direct, strongly advising them to seek immediate emergency care. For example: "This sounds like it could be serious and requires immediate medical attention. I strongly advise you to go to the nearest Emergency Room or call 911 (or your local emergency number) right away. Please do not delay. Speed is critical in these situations. Can I clarify anything about seeking emergency help?" (In an emergency, do not ask about scheduling non-emergency appointments).
 
 Chat History:
@@ -71,12 +77,13 @@ No previous chat history.
 
 User's current input: "{{userInput}}"
 
-Based on all the information, determine the most appropriate 'appointmentType' (for internal use) and craft a comprehensive, conversational 'reason' for the user, following the multi-point structure above.
+Based on all the information, determine the most appropriate 'appointmentType' (for internal use) and 'complexity', and craft a comprehensive, conversational 'reason' for the user, following the multi-point structure above.
 Your response MUST be in the following JSON format. Do not add any other text, explanations, or markdown formatting outside of the JSON structure itself.
 
 {
   "appointmentType": "string (must be one of: sick parade, GP, mental health, physio, specialist, ER referral)",
-  "reason": "string (your detailed, conversational, and explanatory response to the user, structured as per the guidelines above)"
+  "reason": "string (your detailed, conversational, and explanatory response to the user, structured as per the guidelines above)",
+  "complexity": "string (must be one of: easy, medium, complex)"
 }
 `,
   config: {
@@ -109,7 +116,7 @@ const chatBotFlow = ai.defineFlow(
   },
   async input => {
     const result = await prompt(input);
-    if (!result.output || !result.output.appointmentType || !result.output.reason) {
+    if (!result.output || !result.output.appointmentType || !result.output.reason || !result.output.complexity) {
       console.error(
         'Triage chatbot flow: AI prompt did not return a valid or complete output.',
         'Input:', JSON.stringify(input),
@@ -117,7 +124,8 @@ const chatBotFlow = ai.defineFlow(
       );
       return {
         appointmentType: "Error",
-        reason: "The AI assistant encountered an issue and could not provide a recommendation. Please try rephrasing your concern or contact support if the problem persists. You can check server logs for more details if you are an administrator."
+        reason: "The AI assistant encountered an issue and could not provide a recommendation. Please try rephrasing your concern or contact support if the problem persists. You can check server logs for more details if you are an administrator.",
+        complexity: "complex", // Default to complex for review
       };
     }
     return result.output;

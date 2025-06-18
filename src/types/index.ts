@@ -18,6 +18,7 @@ export interface ChatMessage {
 export interface AppointmentRecommendation {
   appointmentType: string;
   reason: string;
+  complexity: 'easy' | 'medium' | 'complex';
 }
 
 export interface TriageSession {
@@ -40,5 +41,5 @@ export interface AIChatInput {
 export interface AIChatOutput {
   appointmentType: string;
   reason: string;
+  complexity: 'easy' | 'medium' | 'complex';
 }
-

@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { ChatMessage, AppointmentRecommendation } from '@/types';
 import { ChatMessages } from './components/chat-messages';
 import { ChatInputForm } from './components/chat-input-form';
-// RecommendationDisplay component is no longer imported
+import { SchedulingSidebar } from './components/scheduling-sidebar';
 import { processChatMessage } from './actions';
 import { useAuth } from '@/contexts/auth-context';
 import { useLanguage } from '@/contexts/language-context';
@@ -13,8 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-// Button for sidebar toggle is removed
-import { AlertTriangle } from 'lucide-react'; // PanelRightOpen, PanelRightClose removed
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, PanelRightOpen, PanelRightClose } from 'lucide-react';
 
 const MAX_CHAT_HISTORY_FOR_AI = 10; // Max messages (user + assistant pairs) to send to AI
 
@@ -25,11 +25,10 @@ export default function ChatPage() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  // recommendation state is kept for saving to Firestore, but not for direct display via RecommendationDisplay
   const [recommendation, setRecommendation] = useState<AppointmentRecommendation | null>(null);
   const [isEmergency, setIsEmergency] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  // isRecommendationSidebarOpen state is removed
+  const [isRecommendationSidebarOpen, setIsRecommendationSidebarOpen] = useState(false);
 
 
   useEffect(() => {
@@ -48,7 +47,7 @@ export default function ChatPage() {
     setRecommendation(null);
     setIsEmergency(false);
     setSessionId(null); 
-    // setIsRecommendationSidebarOpen(true); // Removed
+    setIsRecommendationSidebarOpen(false);
   }, [language, t]); 
 
   const handleEmergencyKeywordDetected = () => {
@@ -63,7 +62,7 @@ export default function ChatPage() {
       },
     ]);
     setRecommendation(null); 
-    // setIsRecommendationSidebarOpen(false); // Removed
+    setIsRecommendationSidebarOpen(false);
   };
 
   const saveTriageSessionToFirestore = useCallback(async (finalMessages: ChatMessage[], finalRecommendation: AppointmentRecommendation, emergencyDetected: boolean) => {
@@ -73,7 +72,7 @@ export default function ChatPage() {
         userId: user.uid,
         timestamp: serverTimestamp(),
         chatHistory: finalMessages.map(m => ({ role: m.role, content: m.content, timestamp: m.timestamp || new Date() })),
-        recommendation: finalRecommendation, // The core recommendation (e.g., { appointmentType: "GP", reason: "AI full response" })
+        recommendation: finalRecommendation,
         language: language,
         emergencyAlertTriggered: emergencyDetected,
       };
@@ -136,18 +135,14 @@ export default function ChatPage() {
         return;
       }
       
-      // The AI's full conversational response (which includes recommendation, reason, next steps, and scheduling info)
-      // is in result.aiResponse.content (which itself comes from aiOutput.reason)
       const aiResponseMsg = result.aiResponse;
       setMessages((prevMessages) => [...prevMessages, aiResponseMsg]);
 
       if (result.recommendation) {
-        // Set the core recommendation (appointmentType and full reason text) for saving
         setRecommendation(result.recommendation); 
-        // setIsRecommendationSidebarOpen(true); // Removed
+        setIsRecommendationSidebarOpen(true);
         
         const updatedMessages = [...messages, newUserMessage, aiResponseMsg];
-        // Pass result.recommendation which is AIChatOutput { appointmentType: string, reason: string }
         const newSessionId = await saveTriageSessionToFirestore(updatedMessages, result.recommendation, isEmergency);
         if (newSessionId) setSessionId(newSessionId);
       }
@@ -176,16 +171,19 @@ export default function ChatPage() {
     <div className="flex h-[calc(100vh-4rem)] flex-col py-4 px-2 sm:px-4"> 
       <Card className="flex flex-1 flex-col overflow-hidden shadow-xl">
         <CardHeader className="border-b">
-          <div className="flex justify-center items-center"> {/* Centering title as sidebar toggle is removed */}
+          <div className="flex justify-between items-center">
             <CardTitle className="text-xl font-headline text-primary">
               {t('chatWithAI')}
             </CardTitle>
-            {/* Sidebar toggle button removed */}
+            {recommendation && (
+              <Button variant="ghost" size="icon" onClick={() => setIsRecommendationSidebarOpen(!isRecommendationSidebarOpen)}>
+                {isRecommendationSidebarOpen ? <PanelRightClose /> : <PanelRightOpen />}
+              </Button>
+            )}
           </div>
         </CardHeader>
         
         <CardContent className="flex flex-1 p-0 overflow-hidden">
-          {/* Removed flex-row structure for sidebar */}
           <div className="flex-1 flex flex-col overflow-hidden">
             {isEmergency && (
                 <div className="bg-destructive/10 p-4 text-destructive border-b border-destructive">
@@ -198,8 +196,6 @@ export default function ChatPage() {
             )}
             <ChatMessages messages={messages} isLoading={isLoading && !isEmergency} />
             
-            {/* Removed inline RecommendationDisplay for mobile, as it's now part of the chat flow */}
-
             {!isEmergency && (
               <ChatInputForm 
                 onSubmit={handleSubmitMessage} 
@@ -209,7 +205,11 @@ export default function ChatPage() {
             )}
           </div>
 
-          {/* Recommendation sidebar div completely removed */}
+          <SchedulingSidebar
+            recommendation={recommendation}
+            isOpen={isRecommendationSidebarOpen}
+            onClose={() => setIsRecommendationSidebarOpen(false)}
+          />
         </CardContent>
       </Card>
     </div>
