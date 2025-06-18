@@ -21,19 +21,19 @@ export default function AdminLayout({
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        router.replace('/login'); // Not authenticated
+        router.replace('/login'); 
       } else if (!isAdmin) {
-        router.replace('/chat'); // Authenticated but not admin
+        router.replace('/chat'); 
       }
     }
   }, [user, isAdmin, loading, router]);
 
   if (loading || !isAdmin) {
-    // Show a more specific message if access is denied vs still loading
+    
     let message = t('loadingAdmin') || "Loading admin section...";
     if (!loading && user && !isAdmin) {
       message = t('adminAccessDenied') || "Access Denied. You are not an administrator.";
-    } else if (!loading && !user && !isAdmin) { // Ensure !isAdmin check for non-user scenario too
+    } else if (!loading && !user && !isAdmin) { 
        message = t('adminNotAuthenticated') || "Please login to access this section.";
     }
 
@@ -49,7 +49,6 @@ export default function AdminLayout({
       </div>
     );
   }
-  // If loading is false AND user is admin, render children
-  return <div className="container mx-auto py-8">{children}</div>;
+  // Removed container and py-8, SidebarInset will handle padding
+  return <div className="p-4 sm:p-6 md:p-8">{children}</div>; 
 }
-

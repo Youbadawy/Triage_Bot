@@ -1,18 +1,35 @@
+
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { Navbar } from '@/components/shared/navbar';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
+import { 
+  SidebarProvider, 
+  Sidebar, 
+  SidebarHeader, 
+  SidebarContent, 
+  SidebarFooter, 
+  SidebarMenu, 
+  SidebarMenuItem, 
+  SidebarMenuButton,
+  SidebarInset
+} from '@/components/ui/sidebar';
+import Link from 'next/link';
+import { MessageSquareText, LayoutDashboard, HeartPulse } from 'lucide-react';
+import { useLanguage } from '@/contexts/language-context';
 
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loading } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -29,9 +46,56 @@ export default function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Navbar />
-      <main className="flex-1">{children}</main>
-    </div>
+    <SidebarProvider defaultOpen>
+      <Sidebar>
+        <SidebarHeader className="p-4">
+          <Link href="/" className="flex items-center space-x-2">
+            <HeartPulse className="h-7 w-7 text-primary" />
+            <span className="font-bold text-lg font-headline group-data-[collapsible=icon]:hidden">
+              {t('appName')}
+            </span>
+          </Link>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                asChild 
+                isActive={pathname === '/chat'}
+                tooltip={t('chatWithAI')}
+              >
+                <Link href="/chat">
+                  <MessageSquareText />
+                  <span>{t('chatWithAI')}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            {isAdmin && (
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={pathname.startsWith('/admin')}
+                  tooltip={t('adminDashboard')}
+                >
+                  <Link href="/admin/dashboard">
+                    <LayoutDashboard />
+                    <span>{t('adminDashboard')}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+          </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter>
+          {/* UserNav is in the top Navbar, so footer can be minimal or for other links if needed */}
+        </SidebarFooter>
+      </Sidebar>
+      <SidebarInset>
+        <Navbar />
+        <main className="flex-1 bg-background"> {/* Ensure main content area has a background */}
+          {children}
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

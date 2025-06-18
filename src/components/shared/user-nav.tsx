@@ -14,11 +14,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
 import { useLanguage } from '@/contexts/language-context';
-import { LogOut, UserCircle, ShieldCheck, MessageSquareText } from 'lucide-react';
-import Link from 'next/link';
+import { LogOut, UserCircle } from 'lucide-react'; // Removed ShieldCheck, MessageSquareText
+// Link import removed as direct navigation links are moved to sidebar
 
 export function UserNav() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout } = useAuth(); // Removed isAdmin as it's not used for conditional links here anymore
   const { t } = useLanguage();
 
   if (!user) {
@@ -59,7 +59,8 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuGroup>
+        {/* Navigation links previously here are now in the main sidebar */}
+        {/* <DropdownMenuGroup>
            <DropdownMenuItem asChild>
               <Link href="/chat" className="flex items-center cursor-pointer">
                 <MessageSquareText className="mr-2 h-4 w-4" />
@@ -75,7 +76,7 @@ export function UserNav() {
             </DropdownMenuItem>
           )}
         </DropdownMenuGroup>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator /> */}
         <DropdownMenuItem onClick={logout} className="cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />
           <span>{t('logout')}</span>

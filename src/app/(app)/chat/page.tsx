@@ -47,7 +47,7 @@ export default function ChatPage() {
     setRecommendation(null);
     setIsEmergency(false);
     setSessionId(null); 
-    setIsRecommendationSidebarOpen(true); // Reset sidebar state on language change
+    setIsRecommendationSidebarOpen(true); 
   }, [language, t]); 
 
   const handleEmergencyKeywordDetected = () => {
@@ -62,7 +62,7 @@ export default function ChatPage() {
       },
     ]);
     setRecommendation(null); 
-    setIsRecommendationSidebarOpen(false); // Hide sidebar in emergency
+    setIsRecommendationSidebarOpen(false); 
   };
 
   const saveTriageSessionToFirestore = useCallback(async (finalMessages: ChatMessage[], finalRecommendation: AppointmentRecommendation, emergencyDetected: boolean) => {
@@ -140,7 +140,7 @@ export default function ChatPage() {
 
       if (result.recommendation) {
         setRecommendation(result.recommendation);
-        setIsRecommendationSidebarOpen(true); // Open sidebar when new recommendation arrives
+        setIsRecommendationSidebarOpen(true); 
         const updatedMessages = [...messages, newUserMessage, aiResponseMsg];
         const newSessionId = await saveTriageSessionToFirestore(updatedMessages, result.recommendation, isEmergency);
         if (newSessionId) setSessionId(newSessionId);
@@ -167,7 +167,8 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="container mx-auto flex h-[calc(100vh-4rem)] max-w-3xl lg:max-w-5xl flex-col py-4">
+    // Removed container and max-width, SidebarInset should manage this. Added py-4 for vertical padding.
+    <div className="flex h-[calc(100vh-4rem)] flex-col py-4 px-2 sm:px-4"> 
       <Card className="flex flex-1 flex-col overflow-hidden shadow-xl">
         <CardHeader className="border-b">
           <div className="flex justify-between items-center">
@@ -179,7 +180,7 @@ export default function ChatPage() {
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setIsRecommendationSidebarOpen(!isRecommendationSidebarOpen)}
-                className="hidden md:inline-flex" // Only show toggle on md screens and up
+                className="hidden md:inline-flex" 
                 aria-label={isRecommendationSidebarOpen ? "Close recommendation panel" : "Open recommendation panel"}
               >
                 {isRecommendationSidebarOpen ? <PanelRightClose size={20} /> : <PanelRightOpen size={20} />}
@@ -191,7 +192,7 @@ export default function ChatPage() {
         <CardContent className="flex flex-1 p-0 overflow-hidden">
           <div className="flex flex-1 flex-row">
             
-            <div className="flex-1 flex flex-col overflow-hidden"> {/* Main chat area takes remaining space */}
+            <div className="flex-1 flex flex-col overflow-hidden">
               {isEmergency && (
                  <div className="bg-destructive/10 p-4 text-destructive border-b border-destructive">
                     <div className="flex items-center font-semibold">
@@ -203,7 +204,6 @@ export default function ChatPage() {
               )}
               <ChatMessages messages={messages} isLoading={isLoading && !isEmergency} />
               
-              {/* Inline Recommendation for small screens (md:hidden) */}
               <div className="block md:hidden">
                 {recommendation && !isEmergency && (
                   <div className="p-4 border-t bg-card">
@@ -221,9 +221,8 @@ export default function ChatPage() {
               )}
             </div>
 
-            {/* Collapsible Sidebar Recommendation Area for medium screens and up */}
             {isRecommendationSidebarOpen && recommendation && !isEmergency && (
-              <div className="hidden md:flex md:flex-col w-80 lg:w-96 border-l bg-card overflow-y-auto transition-all duration-300 ease-in-out">
+              <div className="hidden md:flex md:flex-col w-80 lg:w-96 border-l bg-muted/20 overflow-y-auto transition-all duration-300 ease-in-out">
                 <div className="p-4">
                     <RecommendationDisplay recommendation={recommendation} />
                 </div>

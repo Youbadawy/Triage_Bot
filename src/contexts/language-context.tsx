@@ -23,7 +23,7 @@ const translations: Record<Language, Record<string, string>> = {
     loginSuccessDesc: "Welcome back!",
     loginErrorTitle: "Login Failed",
     loginErrorDesc: "Please check your credentials and try again.",
-    chatWithAI: "Chat with AI Assistant",
+    chatWithAI: "Chat Assistant", // Changed for sidebar
     send: "Send",
     typeYourMessage: "Type your message...",
     adminDashboard: "Admin Dashboard",
@@ -126,7 +126,7 @@ const translations: Record<Language, Record<string, string>> = {
     loginSuccessDesc: "Bon retour!",
     loginErrorTitle: "Échec de la connexion",
     loginErrorDesc: "Veuillez vérifier vos identifiants et réessayer.",
-    chatWithAI: "Clavardage IA",
+    chatWithAI: "Assistant Clavardage", // Changed for sidebar
     send: "Envoyer",
     typeYourMessage: "Écrivez votre message...",
     adminDashboard: "Tableau de bord admin",
@@ -236,10 +236,10 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
         if (browserLang === 'fr') {
           setLanguageState('fr');
         } else {
-          setLanguageState('en'); // Default to English if browser language is not French
+          setLanguageState('en'); 
         }
       } else {
-        setLanguageState('en'); // Default to English if navigator is not available (e.g. SSR)
+        setLanguageState('en'); 
       }
     }
   }, []);
