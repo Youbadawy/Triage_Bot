@@ -5,11 +5,11 @@ import { useEffect, useState } from 'react';
 import type { TriageSession } from '@/types';
 import { TriageSessionsTable } from './components/triage-sessions-table';
 import { TriageSessionDetails } from './components/triage-session-details';
-import { PrepareForClinicModal } from './components/prepare-for-clinic-modal'; // New import
+import { PrepareForClinicModal } from './components/prepare-for-clinic-modal';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 import { useAuth } from '@/contexts/auth-context';
 import { useLanguage } from '@/contexts/language-context';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/config';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, ListChecks } from "lucide-react";
@@ -17,18 +17,18 @@ import { AlertTriangle, ListChecks } from "lucide-react";
 const SESSIONS_LIMIT = 50; // Number of sessions to fetch
 
 export default function AdminDashboardPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin } = useAuth(); // isAdmin check is handled by AdminLayout
   const { t } = useLanguage();
 
   const [sessions, setSessions] = useState<TriageSession[]>([]);
   const [selectedSessionForDetails, setSelectedSessionForDetails] = useState<TriageSession | null>(null);
-  const [selectedSessionForClinic, setSelectedSessionForClinic] = useState<TriageSession | null>(null); // New state
+  const [selectedSessionForClinic, setSelectedSessionForClinic] = useState<TriageSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAdmin) return;
-
+    // isAdmin check is primarily for initial gatekeeping, layout handles redirection.
+    // Fetching can proceed if layout allows rendering.
     const fetchSessions = async () => {
       setIsLoading(true);
       setError(null);
@@ -36,7 +36,20 @@ export default function AdminDashboardPage() {
         const sessionsCol = collection(db, 'triageSessions');
         const q = query(sessionsCol, orderBy('timestamp', 'desc'), limit(SESSIONS_LIMIT));
         const snapshot = await getDocs(q);
-        const sessionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as TriageSession));
+        const sessionsData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          // Ensure timestamp is correctly handled (Firestore Timestamps vs JS Dates)
+          const transformedChatHistory = (data.chatHistory || []).map((msg: any) => ({
+            ...msg,
+            timestamp: msg.timestamp instanceof Timestamp ? msg.timestamp.toDate() : new Date(msg.timestamp)
+          }));
+          return { 
+            id: doc.id, 
+            ...data,
+            timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toDate() : new Date(data.timestamp),
+            chatHistory: transformedChatHistory
+          } as TriageSession;
+        });
         setSessions(sessionsData);
       } catch (err: any) {
         console.error("Error fetching triage sessions:", err);
@@ -47,7 +60,7 @@ export default function AdminDashboardPage() {
     };
 
     fetchSessions();
-  }, [isAdmin, t]);
+  }, [t]);
 
   const handleViewDetails = (session: TriageSession) => {
     setSelectedSessionForDetails(session);
@@ -57,15 +70,15 @@ export default function AdminDashboardPage() {
     setSelectedSessionForDetails(null);
   };
 
-  const handlePrepareForClinic = (session: TriageSession) => { // New handler
+  const handlePrepareForClinic = (session: TriageSession) => {
     setSelectedSessionForClinic(session);
   };
 
-  const handleClosePrepareForClinic = () => { // New handler
+  const handleClosePrepareForClinic = () => {
     setSelectedSessionForClinic(null);
   };
 
-  if (isLoading) {
+  if (isLoading && sessions.length === 0) { // Show full page loader only if no sessions are loaded yet
     return (
       <div className="flex h-[calc(100vh-8rem)] items-center justify-center">
         <LoadingSpinner size={48} />
@@ -81,6 +94,7 @@ export default function AdminDashboardPage() {
           <ListChecks className="w-8 h-8 mr-3 text-primary" />
           {t('adminDashboard')}
         </h1>
+         {isLoading && <LoadingSpinner size={24} />}
       </div>
       
       {error && (
@@ -95,7 +109,7 @@ export default function AdminDashboardPage() {
         <TriageSessionsTable 
           sessions={sessions} 
           onViewDetails={handleViewDetails} 
-          onPrepareForClinic={handlePrepareForClinic} // Pass new handler
+          onPrepareForClinic={handlePrepareForClinic}
         />
       }
 
@@ -107,7 +121,7 @@ export default function AdminDashboardPage() {
         />
       )}
 
-      {selectedSessionForClinic && ( // Render new modal
+      {selectedSessionForClinic && (
         <PrepareForClinicModal
           session={selectedSessionForClinic}
           isOpen={!!selectedSessionForClinic}

@@ -30,6 +30,7 @@ const translations: Record<Language, Record<string, string>> = {
     logout: "Logout",
     user: "User",
     assistant: "Assistant",
+    system: "System",
     signupTitle: "Create Account",
     signupDescription: "Create an account to get started.",
     displayNameLabel: "Display Name (Optional)",
@@ -47,7 +48,7 @@ const translations: Record<Language, Record<string, string>> = {
     triageResults: "Triage Results",
     triageResultsDescription: "Based on your symptoms, here is our recommendation:",
     recommendation: "Recommendation",
-    reason: "Reason",
+    reasonLabel: "Reason",
     emergencyTitle: "EMERGENCY",
     emergencyMessage: "It seems you might need urgent help. Please contact emergency services (911) or proceed to the nearest emergency room immediately. If you are on a base, follow local emergency protocols.",
     chatInputFormLabel: "Chat input form",
@@ -77,6 +78,8 @@ const translations: Record<Language, Record<string, string>> = {
     emergencyTriggeredLabel: "Emergency Triggered",
     yes: "Yes",
     no: "No",
+    notAvailable: "Not available",
+    notAvailableShort: "N/A",
     chatTranscript: "Chat Transcript",
     closeButton: "Close",
     loadingAdmin: "Loading admin section...",
@@ -98,7 +101,7 @@ const translations: Record<Language, Record<string, string>> = {
     aiTriageSummaryLabel: "AI Triage Summary & Reason",
     emergencyAlertDuringTriageLabel: "Emergency Alert During Triage",
     followEmergencyProtocols: "Follow emergency protocols if applicable",
-    forClinicUseTitle: "FOR CLINIC USE",
+    forClinicUseTitle: "FOR CLINIC USE:",
     patientNameLabel: "Patient Name (if known)",
     patientContactNumberLabel: "Patient Contact Number",
     unitSectionLabel: "Unit / Section (if applicable)",
@@ -113,6 +116,7 @@ const translations: Record<Language, Record<string, string>> = {
     copiedToClipboardMessage: "Copied to clipboard!",
     copyToClipboardFailed: "Failed to copy.",
     noChatHistoryAvailable: "No chat history available.",
+    invalidDate: "Invalid Date",
   },
   fr: {
     appName: "CAF MedRoute",
@@ -122,13 +126,14 @@ const translations: Record<Language, Record<string, string>> = {
     loginSuccessDesc: "Bon retour!",
     loginErrorTitle: "Échec de la connexion",
     loginErrorDesc: "Veuillez vérifier vos identifiants et réessayer.",
-    chatWithAI: "Discutez avec l'assistant IA",
+    chatWithAI: "Clavardage IA",
     send: "Envoyer",
     typeYourMessage: "Écrivez votre message...",
-    adminDashboard: "Tableau de bord",
+    adminDashboard: "Tableau de bord admin",
     logout: "Déconnexion",
     user: "Utilisateur",
     assistant: "Assistant",
+    system: "Système",
     signupTitle: "Créer un compte",
     signupDescription: "Créez un compte pour commencer.",
     displayNameLabel: "Nom d'affichage (Facultatif)",
@@ -146,7 +151,7 @@ const translations: Record<Language, Record<string, string>> = {
     triageResults: "Résultats du triage",
     triageResultsDescription: "En fonction de vos symptômes, voici notre recommandation :",
     recommendation: "Recommandation",
-    reason: "Raison",
+    reasonLabel: "Raison",
     emergencyTitle: "URGENCE",
     emergencyMessage: "Il semble que vous ayez besoin d'une aide urgente. Veuillez contacter les services d'urgence (911) ou vous rendre immédiatement aux urgences les plus proches. Si vous êtes sur une base, suivez les protocoles d'urgence locaux.",
     chatInputFormLabel: "Formulaire de saisie de clavardage",
@@ -173,15 +178,17 @@ const translations: Record<Language, Record<string, string>> = {
     userIdLabel: "ID Utilisateur",
     timestampLabel: "Horodatage",
     languageLabel: "Langue",
-    emergencyTriggeredLabel: "Alerte d'urgence déclenchée",
+    emergencyTriggeredLabel: "Alerte d'urgence",
     yes: "Oui",
     no: "Non",
+    notAvailable: "Non disponible",
+    notAvailableShort: "N/D",
     chatTranscript: "Transcription du clavardage",
     closeButton: "Fermer",
     loadingAdmin: "Chargement de la section admin...",
     adminAccessDenied: "Accès refusé. Vous n'êtes pas un administrateur.",
     adminNotAuthenticated: "Veuillez vous connecter pour accéder à cette section.",
-    backToApp: "Retour à l'application",
+    backToApp: "Retour à l'app",
     toggleLanguage: "Passer à {{lang}}",
     urgentActionRequired: "Action urgente requise :",
     erReferralInstruction: "Veuillez vous rendre immédiatement à la salle d'urgence la plus proche ou contacter les services d'urgence (911).",
@@ -212,6 +219,7 @@ const translations: Record<Language, Record<string, string>> = {
     copiedToClipboardMessage: "Copié dans le presse-papiers !",
     copyToClipboardFailed: "Échec de la copie.",
     noChatHistoryAvailable: "Aucun historique de clavardage disponible.",
+    invalidDate: "Date invalide",
   },
 };
 
@@ -223,18 +231,24 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     if (storedLang && ['en', 'fr'].includes(storedLang)) {
       setLanguageState(storedLang);
     } else {
-      const browserLang = navigator.language.split('-')[0] as Language;
-      if (browserLang === 'fr') {
-        setLanguageState('fr');
+      if (typeof navigator !== 'undefined') {
+        const browserLang = navigator.language.split('-')[0] as Language;
+        if (browserLang === 'fr') {
+          setLanguageState('fr');
+        } else {
+          setLanguageState('en'); // Default to English if browser language is not French
+        }
       } else {
-        setLanguageState('en'); // Default to English if browser language is not French
+        setLanguageState('en'); // Default to English if navigator is not available (e.g. SSR)
       }
     }
   }, []);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('caf-medroute-lang', lang);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('caf-medroute-lang', lang);
+    }
     if (typeof document !== 'undefined') {
       document.documentElement.lang = lang;
     }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
 import { useLanguage } from '@/contexts/language-context';
-import { LogOut, UserCircle, ShieldCheck } from 'lucide-react';
+import { LogOut, UserCircle, ShieldCheck, MessageSquareText } from 'lucide-react';
 import Link from 'next/link';
 
 export function UserNav() {
@@ -27,10 +28,13 @@ export function UserNav() {
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
     const names = name.split(' ');
-    if (names.length > 1) {
+    if (names.length > 1 && names[0] && names[names.length - 1]) {
       return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
     }
-    return name[0].toUpperCase();
+    if (name && name.length > 0) {
+     return name[0].toUpperCase();
+    }
+    return 'U';
   };
 
   return (
@@ -56,6 +60,12 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
+           <DropdownMenuItem asChild>
+              <Link href="/chat" className="flex items-center cursor-pointer">
+                <MessageSquareText className="mr-2 h-4 w-4" />
+                <span>{t('chatWithAI')}</span>
+              </Link>
+            </DropdownMenuItem>
           {isAdmin && (
             <DropdownMenuItem asChild>
               <Link href="/admin/dashboard" className="flex items-center cursor-pointer">
@@ -64,12 +74,6 @@ export function UserNav() {
               </Link>
             </DropdownMenuItem>
           )}
-           <DropdownMenuItem asChild>
-              <Link href="/chat" className="flex items-center cursor-pointer">
-                <UserCircle className="mr-2 h-4 w-4" />
-                <span>{t('chatWithAI')}</span>
-              </Link>
-            </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={logout} className="cursor-pointer">
