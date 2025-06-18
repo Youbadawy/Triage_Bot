@@ -30,7 +30,6 @@ export default function ChatPage() {
 
 
   useEffect(() => {
-    // Use t() for initial greeting based on language context
     const initialMessageContent = language === 'fr' 
       ? t('initialChatGreetingFr') 
       : t('initialChatGreetingEn');
@@ -45,8 +44,8 @@ export default function ChatPage() {
     ]);
     setRecommendation(null);
     setIsEmergency(false);
-    setSessionId(null); // Reset session ID for new chat
-  }, [language, t]); // Add t to dependency array
+    setSessionId(null); 
+  }, [language, t]); 
 
   const handleEmergencyKeywordDetected = () => {
     setIsEmergency(true);
@@ -59,7 +58,7 @@ export default function ChatPage() {
         timestamp: new Date(),
       },
     ]);
-    setRecommendation(null); // Clear any previous recommendation
+    setRecommendation(null); 
   };
 
   const saveTriageSessionToFirestore = useCallback(async (finalMessages: ChatMessage[], finalRecommendation: AppointmentRecommendation, emergencyDetected: boolean) => {
@@ -98,10 +97,6 @@ export default function ChatPage() {
     };
     setMessages((prevMessages) => [...prevMessages, newUserMessage]);
     setIsLoading(true);
-    // Keep the previous recommendation visible while waiting for new AI response,
-    // or clear it if you prefer it to disappear immediately.
-    // For a more seamless follow-up, let's keep it for now.
-    // setRecommendation(null); 
 
     const chatHistoryForAI = messages
       .filter(msg => msg.role === 'user' || msg.role === 'assistant')
@@ -117,7 +112,6 @@ export default function ChatPage() {
       });
 
       if (result.error) {
-        // Use t() for the user-facing part of the error, if possible
         const displayError = t('aiError'); 
         const systemMessageContent = result.aiResponse?.content ? `${displayError} Details: ${result.aiResponse.content}` : displayError;
         
@@ -133,7 +127,7 @@ export default function ChatPage() {
           title: t('aiErrorTitle'),
           description: t('aiErrorDesc'),
         });
-        setIsLoading(false); // Ensure loading state is reset on error
+        setIsLoading(false); 
         return;
       }
       
@@ -168,7 +162,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="container mx-auto flex h-[calc(100vh-4rem)] max-w-3xl flex-col py-4">
+    <div className="container mx-auto flex h-[calc(100vh-4rem)] max-w-3xl lg:max-w-5xl flex-col py-4">
       <Card className="flex flex-1 flex-col overflow-hidden shadow-xl">
         <CardHeader className="border-b">
           <CardTitle className="text-xl font-headline text-center text-primary">
@@ -176,30 +170,49 @@ export default function ChatPage() {
           </CardTitle>
         </CardHeader>
         
-        <CardContent className="flex flex-1 flex-col p-0 overflow-hidden">
-          {isEmergency && (
-             <div className="bg-destructive/10 p-4 text-destructive border-b border-destructive">
-                <div className="flex items-center font-semibold">
-                    <AlertTriangle className="h-5 w-5 mr-2" />
-                    {t('emergencyTitle')}
+        <CardContent className="flex flex-1 p-0 overflow-hidden">
+          <div className="flex flex-1 flex-row"> {/* Main flex container for chat and optional sidebar */}
+            
+            {/* Primary Chat Area (Messages & Input) */}
+            <div className="flex flex-1 flex-col overflow-hidden">
+              {isEmergency && (
+                 <div className="bg-destructive/10 p-4 text-destructive border-b border-destructive">
+                    <div className="flex items-center font-semibold">
+                        <AlertTriangle className="h-5 w-5 mr-2" />
+                        {t('emergencyTitle')}
+                    </div>
+                    <p className="text-sm mt-1">{t('emergencyMessage')}</p>
                 </div>
-                <p className="text-sm mt-1">{t('emergencyMessage')}</p>
+              )}
+              <ChatMessages messages={messages} isLoading={isLoading && !isEmergency} />
+              
+              {/* Inline Recommendation for small screens (md:hidden) */}
+              <div className="block md:hidden">
+                {recommendation && !isEmergency && (
+                  <div className="p-4 border-t bg-card">
+                    <RecommendationDisplay recommendation={recommendation} />
+                  </div>
+                )}
+              </div>
+
+              {!isEmergency && (
+                <ChatInputForm 
+                  onSubmit={handleSubmitMessage} 
+                  isLoading={isLoading}
+                  onEmergencyKeywordDetected={handleEmergencyKeywordDetected}
+                />
+              )}
             </div>
-          )}
-          <ChatMessages messages={messages} isLoading={isLoading && !isEmergency} />
-          {recommendation && !isEmergency && (
-            <div className="p-4 border-t">
-              <RecommendationDisplay recommendation={recommendation} />
-            </div>
-          )}
-          {/* Show ChatInputForm unless it's an emergency */}
-          {!isEmergency && (
-            <ChatInputForm 
-              onSubmit={handleSubmitMessage} 
-              isLoading={isLoading}
-              onEmergencyKeywordDetected={handleEmergencyKeywordDetected}
-            />
-          )}
+
+            {/* Sidebar Recommendation Area for medium screens and up (md:block) */}
+            {recommendation && !isEmergency && (
+              <div className="hidden md:flex md:flex-col w-80 lg:w-96 border-l bg-card overflow-y-auto">
+                <div className="p-4">
+                    <RecommendationDisplay recommendation={recommendation} />
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
