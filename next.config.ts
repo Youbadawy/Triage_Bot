@@ -19,8 +19,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // allowedDevOrigins removed as it was causing issues or not properly recognized.
-  // The "Cross origin request detected" is a warning and does not prevent server startup.
 };
 
 export default nextConfig;
