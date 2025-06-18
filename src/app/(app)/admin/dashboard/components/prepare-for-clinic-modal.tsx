@@ -18,6 +18,7 @@ import { fr as frLocale, enUS as enLocale } from 'date-fns/locale';
 import { ClipboardCopy, AlertTriangle, CalendarDays, User, MessagesSquare, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
+import { Timestamp } from 'firebase/firestore';
 
 interface PrepareForClinicModalProps {
   session: TriageSession | null;
@@ -32,15 +33,28 @@ export function PrepareForClinicModal({ session, isOpen, onClose }: PrepareForCl
 
   useEffect(() => {
     if (isOpen) {
-      setGeneratedDate(format(new Date(), 'PPPppp', { locale: language === 'fr' ? frLocale : enLocale }));
+      setGeneratedDate(format(new Date(), 'PPP p', { locale: language === 'fr' ? frLocale : enLocale }));
     }
   }, [isOpen, language]);
 
   if (!session) return null;
 
-  const formatDate = (date: any) => {
-    const dateObj = date?.toDate ? date.toDate() : (date || new Date());
-    return format(dateObj, 'PPPppp', { locale: language === 'fr' ? frLocale : enLocale });
+  const formatDateForReferral = (dateInput: any) => {
+    let dateObj: Date;
+    if (dateInput instanceof Timestamp) {
+      dateObj = dateInput.toDate();
+    } else if (dateInput instanceof Date) {
+      dateObj = dateInput;
+    } else if (dateInput && typeof dateInput === 'object' && dateInput._seconds !== undefined) {
+        dateObj = new Timestamp(dateInput._seconds, dateInput._nanoseconds).toDate();
+    } else {
+      dateObj = new Date(dateInput || Date.now());
+    }
+    
+    if (isNaN(dateObj.getTime())) {
+        return t('invalidDate') || 'Invalid Date';
+    }
+    return format(dateObj, 'PPP p', { locale: language === 'fr' ? frLocale : enLocale });
   };
 
   const getLastMessages = (chatHistory: ChatMessage[], count: number = 4) => {
@@ -59,7 +73,7 @@ ${t('dateGeneratedLabel') || 'Date Generated'}: ${generatedDate}
 
 ${t('sessionIdLabel') || 'Triage Session ID'}: ${session.id}
 ${t('userIdLabel') || 'User ID (Internal)'}: ${session.userId}
-${t('timestampLabel') || 'Triage Timestamp'}: ${formatDate(session.timestamp)}
+${t('timestampLabel') || 'Triage Timestamp'}: ${formatDateForReferral(session.timestamp)}
 ${t('languageLabel') || 'Language of Triage'}: ${session.language.toUpperCase()}
 
 ${t('recommendedAppointmentLabel') || 'Recommended Appointment Type'}:
@@ -123,7 +137,7 @@ ${getLastMessages(session.chatHistory)}
           </pre>
         </ScrollArea>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="gap-2 sm:gap-0 mt-4">
           <Button variant="outline" onClick={onClose}>{t('closeButton') || 'Close'}</Button>
           <Button onClick={handleCopyToClipboard}>
             <ClipboardCopy className="mr-2 h-4 w-4" />

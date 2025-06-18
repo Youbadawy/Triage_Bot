@@ -41,12 +41,19 @@ export default function AdminDashboardPage() {
           // Ensure timestamp is correctly handled (Firestore Timestamps vs JS Dates)
           const transformedChatHistory = (data.chatHistory || []).map((msg: any) => ({
             ...msg,
-            timestamp: msg.timestamp instanceof Timestamp ? msg.timestamp.toDate() : new Date(msg.timestamp)
+            // Ensure msg.timestamp is valid before creating Date or passing to Timestamp
+            timestamp: msg.timestamp instanceof Timestamp 
+                         ? msg.timestamp 
+                         : (msg.timestamp && msg.timestamp.toDate) // Check if it's a Firestore-like timestamp object
+                           ? msg.timestamp.toDate()
+                           : (msg.timestamp && typeof msg.timestamp === 'object' && msg.timestamp._seconds !== undefined) // Check for plain object from Firestore
+                             ? new Timestamp(msg.timestamp._seconds, msg.timestamp._nanoseconds).toDate()
+                             : new Date(msg.timestamp || Date.now()) // Fallback
           }));
           return { 
             id: doc.id, 
             ...data,
-            timestamp: data.timestamp instanceof Timestamp ? data.timestamp.toDate() : new Date(data.timestamp),
+            timestamp: data.timestamp instanceof Timestamp ? data.timestamp : (data.timestamp && data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp || Date.now())),
             chatHistory: transformedChatHistory
           } as TriageSession;
         });

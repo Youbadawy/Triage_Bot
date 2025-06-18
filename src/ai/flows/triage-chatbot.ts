@@ -94,7 +94,7 @@ Your response MUST be in the following JSON format. Do not add any other text, e
       },
       {
         category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        threshold: 'BLOCK_MEDIUM_AND_ABOVE', // Adjusted for medical context
       },
     ],
   },
@@ -122,3 +122,4 @@ const chatBotFlow = ai.defineFlow(
     return result.output;
   }
 );
+

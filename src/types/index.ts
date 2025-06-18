@@ -1,3 +1,4 @@
+
 import type { User as FirebaseUser } from 'firebase/auth';
 import type { Timestamp } from 'firebase/firestore';
 
@@ -8,10 +9,10 @@ export interface UserProfile extends FirebaseUser {
 }
 
 export interface ChatMessage {
-  id: string;
+  id: string; // Unique ID for the message, important for React keys
   role: 'user' | 'assistant' | 'system'; // 'system' for emergency messages or instructions
   content: string;
-  timestamp?: Date | Timestamp; // Firestore typically uses Timestamp
+  timestamp?: Date | Timestamp; // Firestore typically uses Timestamp, client might use Date
 }
 
 export interface AppointmentRecommendation {
@@ -22,8 +23,8 @@ export interface AppointmentRecommendation {
 export interface TriageSession {
   id?: string; // Document ID from Firestore
   userId: string;
-  timestamp: Timestamp;
-  chatHistory: ChatMessage[];
+  timestamp: Timestamp; // Firestore Timestamp for when the session was logged
+  chatHistory: ChatMessage[]; // Ensure chat messages here also align, Firestore might store Date as Timestamp
   recommendation: AppointmentRecommendation;
   language: 'en' | 'fr'; // For bilingual support
   emergencyAlertTriggered: boolean;
@@ -40,3 +41,4 @@ export interface AIChatOutput {
   appointmentType: string;
   reason: string;
 }
+
