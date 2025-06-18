@@ -121,6 +121,10 @@ const translations: Record<Language, Record<string, string>> = {
     appointmentTypeLabel: "Appointment Type:", // Added for scheduling sidebar
     scheduleButton: "Schedule Appointment", // Added for scheduling sidebar
     scheduleFunctionalityComingSoon: "Scheduling functionality is coming soon!",
+    scheduleRequestNotedTitle: "Scheduling Request Noted",
+    scheduleRequestNotedDesc: "Clinic staff will follow up based on your triage. You can now close this panel or continue chatting.",
+    tableHeaderComplexity: "Complexity",
+    tableHeaderReason: "Reason",
   },
   fr: {
     appName: "CAF MedRoute",
@@ -228,6 +232,10 @@ const translations: Record<Language, Record<string, string>> = {
     appointmentTypeLabel: "Type de rendez-vous :", // Added for scheduling sidebar
     scheduleButton: "Planifier un rendez-vous", // Added for scheduling sidebar
     scheduleFunctionalityComingSoon: "La fonctionnalité de planification sera bientôt disponible !",
+    scheduleRequestNotedTitle: "Demande de planification notée",
+    scheduleRequestNotedDesc: "Le personnel de la clinique assurera un suivi en fonction de votre triage. Vous pouvez maintenant fermer ce panneau ou continuer à clavarder.",
+    tableHeaderComplexity: "Complexité",
+    tableHeaderReason: "Motif",
   },
 };
 

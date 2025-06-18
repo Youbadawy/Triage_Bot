@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { X, CheckCircle2, AlertCircle } from 'lucide-react'; // Added icons
 import type { AppointmentRecommendation } from '@/types';
 import { useLanguage } from '@/contexts/language-context';
+import { useToast } from '@/hooks/use-toast';
 
 interface SchedulingSidebarProps {
   recommendation: AppointmentRecommendation | null;
@@ -15,6 +16,7 @@ interface SchedulingSidebarProps {
 
 export function SchedulingSidebar({ recommendation, onClose }: SchedulingSidebarProps) {
   const { t } = useLanguage();
+  const { toast } = useToast();
 
   if (!recommendation) {
     return null;
@@ -57,7 +59,17 @@ export function SchedulingSidebar({ recommendation, onClose }: SchedulingSidebar
           </div>
         )}
         <div className="mt-auto pt-4">
-          <Button className="w-full" onClick={() => alert(t('scheduleFunctionalityComingSoon') || 'Scheduling functionality coming soon!')}>
+          <Button 
+            className="w-full" 
+            onClick={() => {
+              toast({
+                title: t('scheduleRequestNotedTitle') || "Scheduling Request Noted",
+                description: t('scheduleRequestNotedDesc') || "Clinic staff will follow up based on your triage. You can now close this panel or continue chatting.",
+              });
+              // To automatically close the sidebar after clicking:
+              // onClose(); 
+            }}
+          >
             {t('scheduleButton') || 'Schedule Appointment'}
           </Button>
         </div>
