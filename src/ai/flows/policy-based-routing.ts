@@ -32,7 +32,7 @@ export async function policyBasedAppointmentRouting(input: PolicyBasedAppointmen
 const getCaFRoutingRecommendation = ai.defineTool(
   {
     name: 'getCaFRoutingRecommendation',
-    description: 'This tool uses an AI model (LLaMA 4 Scout equivalent via OpenRouter) to analyze triage text against CAF medical policies and routing rules to determine the appropriate appointment type. Use this to make a routing recommendation.',
+    description: 'This tool uses an AI model (LLaMA 4 Scout via OpenRouter) to analyze triage text against CAF medical policies and routing rules to determine the appropriate appointment type. Use this to make a routing recommendation.',
     inputSchema: z.object({
       triageText: z.string().describe('The text of the triage to be used for routing.'),
     }),
@@ -48,7 +48,7 @@ const getCaFRoutingRecommendation = ai.defineTool(
       };
     }
 
-    const modelName = "meta-llama/llama-3-70b-instruct";
+    const modelName = "meta-llama/llama-4-scout:free"; // Updated to Llama 4 Scout
 
     const systemPrompt = `You are an AI assistant acting as LLaMA 4 Scout, an expert in Canadian Armed Forces (CAF) medical policies and appointment routing rules. Your task is to analyze the provided triage text and recommend an appropriate medical appointment type based on CAF guidelines. You must strictly adhere to providing a response in the specified JSON format. Do not include any explanatory text or markdown formatting outside of the JSON structure itself.`;
 
@@ -70,9 +70,6 @@ Provide your response exclusively in the following JSON format:
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          // Optional OpenRouter headers:
-          // 'HTTP-Referer': 'YOUR_SITE_URL', // Replace with your app's URL
-          // 'X-Title': 'CAF MedRoute', // Replace with your app's name
         },
         body: JSON.stringify({
           model: modelName,
@@ -80,7 +77,7 @@ Provide your response exclusively in the following JSON format:
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
-          response_format: { type: "json_object" } // Request JSON output
+          response_format: { type: "json_object" } 
         }),
       });
 
@@ -100,10 +97,8 @@ Provide your response exclusively in the following JSON format:
           try {
               const content = data.choices[0].message.content;
               if (typeof content === 'string') {
-                  // If content is a string, it needs to be parsed as JSON
                   recommendationOutput = JSON.parse(content);
               } else if (typeof content === 'object') {
-                  // If content is already an object (due to response_format), use it directly
                   recommendationOutput = content;
               } else {
                    throw new Error("Unexpected content type from OpenRouter: " + typeof content);
@@ -123,7 +118,6 @@ Provide your response exclusively in the following JSON format:
           };
       }
 
-      // Validate the parsed output against the Zod schema
       const validationResult = PolicyBasedAppointmentRoutingOutputSchema.safeParse(recommendationOutput);
       if (validationResult.success) {
         return validationResult.data;
@@ -151,6 +145,7 @@ const policyBasedAppointmentRoutingPrompt = ai.definePrompt({
   input: {schema: PolicyBasedAppointmentRoutingInputSchema},
   output: {schema: PolicyBasedAppointmentRoutingOutputSchema},
   prompt: `Based on the triage text provided, use the getCaFRoutingRecommendation tool to determine the most appropriate appointment type, according to CAF medical policies and routing rules.\n\nTriage Text: {{{triageText}}}`,
+  // Model for this specific prompt can be overridden if needed, but Genkit Flow will use the tool's config
 });
 
 const policyBasedAppointmentRoutingFlow = ai.defineFlow(
@@ -161,11 +156,9 @@ const policyBasedAppointmentRoutingFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await policyBasedAppointmentRoutingPrompt(input);
-    // Check if output exists and is valid before returning
     if (output && typeof output.appointmentType === 'string' && typeof output.reason === 'string') {
       return output;
     }
-    // Fallback or error handling if the tool call within the prompt fails to produce valid output
     console.error('Policy-based routing flow did not receive a valid output from the prompt/tool.');
     return {
       appointmentType: 'Error',
@@ -173,4 +166,3 @@ const policyBasedAppointmentRoutingFlow = ai.defineFlow(
     };
   }
 );
-

@@ -91,7 +91,7 @@ export default function AdminPromptReferencesPage() {
             {t('triageChatbotPromptTitle')}
           </CardTitle>
           <CardDescription>
-            {t('triageChatbotPromptDesc')}
+            {t('triageChatbotPromptDesc_Llama4Maverick')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -104,27 +104,27 @@ export default function AdminPromptReferencesPage() {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="text-xl font-headline">
-            {t('policyRoutingPromptsTitle')}
+            {t('policyRoutingPromptsTitle_Llama4Scout')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
             <h3 className="font-semibold text-lg mb-1">{t('policyRoutingGenkitPromptLabel')}</h3>
-            <p className="text-sm text-muted-foreground mb-2">{t('policyRoutingGenkitPromptDesc')}</p>
+            <p className="text-sm text-muted-foreground mb-2">{t('policyRoutingGenkitPromptDesc_Llama4Scout')}</p>
             <pre className="p-4 border rounded-md bg-muted/30 whitespace-pre-wrap break-words font-mono text-xs leading-relaxed overflow-x-auto">
               {POLICY_ROUTING_GENKIT_PROMPT_CONTENT}
             </pre>
           </div>
           <div>
             <h3 className="font-semibold text-lg mb-1">{t('policyRoutingOpenRouterSystemPromptLabel')}</h3>
-            <p className="text-sm text-muted-foreground mb-2">{t('policyRoutingOpenRouterSystemPromptDesc')}</p>
+            <p className="text-sm text-muted-foreground mb-2">{t('policyRoutingOpenRouterSystemPromptDesc_Llama4Scout')}</p>
             <pre className="p-4 border rounded-md bg-muted/30 whitespace-pre-wrap break-words font-mono text-xs leading-relaxed overflow-x-auto">
               {POLICY_ROUTING_OPENROUTER_SYSTEM_PROMPT_CONTENT}
             </pre>
           </div>
           <div>
             <h3 className="font-semibold text-lg mb-1">{t('policyRoutingOpenRouterUserPromptLabel')}</h3>
-            <p className="text-sm text-muted-foreground mb-2">{t('policyRoutingOpenRouterUserPromptDesc')}</p>
+            <p className="text-sm text-muted-foreground mb-2">{t('policyRoutingOpenRouterUserPromptDesc_Llama4Scout')}</p>
             <pre className="p-4 border rounded-md bg-muted/30 whitespace-pre-wrap break-words font-mono text-xs leading-relaxed overflow-x-auto">
               {POLICY_ROUTING_OPENROUTER_USER_PROMPT_EXAMPLE_CONTENT}
             </pre>
@@ -134,4 +134,3 @@ export default function AdminPromptReferencesPage() {
     </div>
   );
 }
-
