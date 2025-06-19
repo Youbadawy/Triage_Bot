@@ -18,7 +18,7 @@ import {
   SidebarInset
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { MessageSquareText, LayoutDashboard, HeartPulse, BookText } from 'lucide-react';
+import { MessageSquareText, LayoutDashboard, HeartPulse, BookText, BookMarked } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-context';
 
 export default function AppLayout({
@@ -71,18 +71,32 @@ export default function AppLayout({
               </SidebarMenuButton>
             </SidebarMenuItem>
             {isAdmin && (
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={pathname.startsWith('/admin')}
-                  tooltip={t('adminDashboard')}
-                >
-                  <Link href="/admin/dashboard">
-                    <LayoutDashboard />
-                    <span>{t('adminDashboard')}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <>
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={pathname.startsWith('/admin/dashboard')}
+                    tooltip={t('adminDashboard')}
+                  >
+                    <Link href="/admin/dashboard">
+                      <LayoutDashboard />
+                      <span>{t('adminDashboard')}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={pathname.startsWith('/admin/prompt-references')}
+                    tooltip={t('adminPromptReferencesMenuItem')}
+                  >
+                    <Link href="/admin/prompt-references">
+                      <BookMarked />
+                      <span>{t('adminPromptReferencesMenuItem')}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </>
             )}
             <SidebarMenuItem>
               <SidebarMenuButton 
@@ -111,3 +125,4 @@ export default function AppLayout({
     </SidebarProvider>
   );
 }
+

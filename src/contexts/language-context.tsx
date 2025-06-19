@@ -140,6 +140,10 @@ const translations: Record<Language, Record<string, string>> = {
     policyRoutingOpenRouterSystemPromptDesc: "This is the system prompt sent to the Llama 3 model via OpenRouter within the \"getCaFRoutingRecommendation\" tool.",
     policyRoutingOpenRouterUserPromptLabel: "OpenRouter Tool: User Prompt (Llama 3)",
     policyRoutingOpenRouterUserPromptDesc: "This is an example of the user prompt structure sent to the Llama 3 model via OpenRouter. The actual triage text is dynamically inserted.",
+    adminPromptReferencesMenuItem: "Prompt References (Admin)",
+    adminPromptReferencesPageTitle: "LLM Prompt References (Admin)",
+    adminPromptReferencesPageDesc: "This page displays the exact prompt content used by the AI models for triage and policy-based routing.",
+
   },
   fr: {
     appName: "CAF MedRoute",
@@ -266,6 +270,9 @@ const translations: Record<Language, Record<string, string>> = {
     policyRoutingOpenRouterSystemPromptDesc: "Ceci est l'invite système envoyée au modèle Llama 3 via OpenRouter au sein de l'outil \"getCaFRoutingRecommendation\".",
     policyRoutingOpenRouterUserPromptLabel: "Outil OpenRouter : Invite Utilisateur (Llama 3)",
     policyRoutingOpenRouterUserPromptDesc: "Ceci est un exemple de la structure d'invite utilisateur envoyée au modèle Llama 3 via OpenRouter. Le texte de triage réel est inséré dynamiquement.",
+    adminPromptReferencesMenuItem: "Références d'Invite (Admin)",
+    adminPromptReferencesPageTitle: "Références d'Invite LLM (Admin)",
+    adminPromptReferencesPageDesc: "Cette page affiche le contenu exact des invites utilisées par les modèles IA pour le triage et l'acheminement basé sur les politiques.",
   },
 };
 
