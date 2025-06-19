@@ -1,3 +1,4 @@
+
 // PolicyDrivenAppointmentRouting
 'use server';
 /**
@@ -31,7 +32,7 @@ export async function policyBasedAppointmentRouting(input: PolicyBasedAppointmen
 const getCaFRoutingRecommendation = ai.defineTool(
   {
     name: 'getCaFRoutingRecommendation',
-    description: 'This tool uses an AI model (LLaMA 3 via OpenRouter) to analyze triage text against CAF medical policies and routing rules to determine the appropriate appointment type. Use this to make a routing recommendation.',
+    description: 'This tool uses an AI model (LLaMA 4 Scout equivalent via OpenRouter) to analyze triage text against CAF medical policies and routing rules to determine the appropriate appointment type. Use this to make a routing recommendation.',
     inputSchema: z.object({
       triageText: z.string().describe('The text of the triage to be used for routing.'),
     }),
@@ -172,3 +173,4 @@ const policyBasedAppointmentRoutingFlow = ai.defineFlow(
     };
   }
 );
+

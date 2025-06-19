@@ -6,7 +6,7 @@ import { useLanguage } from '@/contexts/language-context';
 import { BookMarked } from 'lucide-react';
 
 // Prompts from src/ai/flows/triage-chatbot.ts
-const TRIAGE_CHATBOT_PROMPT_CONTENT = `You are CAF MedRoute, a friendly, empathetic, and highly professional Canadian Armed Forces medical triage assistant.
+const TRIAGE_CHATBOT_PROMPT_CONTENT = `You are LLaMA 4 Maverick, a friendly, empathetic, and highly professional Canadian Armed Forces medical triage assistant.
 Your primary role is to understand the user's symptoms or medical concerns through natural, straightforward conversation, recommend an appropriate type of medical appointment, and guide them on next steps, including how to schedule if they wish.
 
 The 'appointmentType' field in your JSON output is for internal categorization and must be one of these exact strings: "sick parade", "GP", "mental health", "physio", "specialist", or "ER referral".
@@ -134,3 +134,4 @@ export default function AdminPromptReferencesPage() {
     </div>
   );
 }
+
