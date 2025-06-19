@@ -18,7 +18,7 @@ import {
   SidebarInset
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { MessageSquareText, LayoutDashboard, HeartPulse } from 'lucide-react';
+import { MessageSquareText, LayoutDashboard, HeartPulse, BookText } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-context';
 
 export default function AppLayout({
@@ -84,6 +84,18 @@ export default function AppLayout({
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                asChild 
+                isActive={pathname === '/references'}
+                tooltip={t('referencesMenuItem')}
+              >
+                <Link href="/references">
+                  <BookText />
+                  <span>{t('referencesMenuItem')}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>

@@ -117,14 +117,20 @@ const translations: Record<Language, Record<string, string>> = {
     copyToClipboardFailed: "Failed to copy.",
     noChatHistoryAvailable: "No chat history available.",
     invalidDate: "Invalid Date",
-    schedulingSidebarTitle: "Next Steps", // Added for scheduling sidebar
-    appointmentTypeLabel: "Appointment Type:", // Added for scheduling sidebar
-    scheduleButton: "Schedule Appointment", // Added for scheduling sidebar
+    schedulingSidebarTitle: "Next Steps",
+    appointmentTypeLabel: "Appointment Type:",
+    scheduleButton: "Schedule Appointment",
     scheduleFunctionalityComingSoon: "Scheduling functionality is coming soon!",
     scheduleRequestNotedTitle: "Scheduling Request Noted",
     scheduleRequestNotedDesc: "Clinic staff will follow up based on your triage. You can now close this panel or continue chatting.",
     tableHeaderComplexity: "Complexity",
     tableHeaderReason: "Reason",
+    referencesMenuItem: "References",
+    referencesPageTitle: "References",
+    referencesPageDesc: "Information about policies, guidelines, and sources used by the AI.",
+    placeholderSectionTitle: "Content Coming Soon",
+    placeholderSectionContent: "The specific references and source materials that inform the AI's responses regarding CAF medical policies and routing rules will be detailed here. This ensures transparency and allows users to understand the basis of the AI's recommendations.",
+    placeholderCheckBack: "Please check back later for updated information.",
   },
   fr: {
     appName: "CAF MedRoute",
@@ -134,7 +140,7 @@ const translations: Record<Language, Record<string, string>> = {
     loginSuccessDesc: "Bon retour!",
     loginErrorTitle: "Échec de la connexion",
     loginErrorDesc: "Veuillez vérifier vos identifiants et réessayer.",
-    chatWithAI: "Assistant Clavardage", // Changed for sidebar
+    chatWithAI: "Assistant Clavardage",
     send: "Envoyer",
     typeYourMessage: "Écrivez votre message...",
     adminDashboard: "Tableau de bord admin",
@@ -228,14 +234,20 @@ const translations: Record<Language, Record<string, string>> = {
     copyToClipboardFailed: "Échec de la copie.",
     noChatHistoryAvailable: "Aucun historique de clavardage disponible.",
     invalidDate: "Date invalide",
-    schedulingSidebarTitle: "Prochaines étapes", // Added for scheduling sidebar
-    appointmentTypeLabel: "Type de rendez-vous :", // Added for scheduling sidebar
-    scheduleButton: "Planifier un rendez-vous", // Added for scheduling sidebar
+    schedulingSidebarTitle: "Prochaines étapes",
+    appointmentTypeLabel: "Type de rendez-vous :",
+    scheduleButton: "Planifier un rendez-vous",
     scheduleFunctionalityComingSoon: "La fonctionnalité de planification sera bientôt disponible !",
     scheduleRequestNotedTitle: "Demande de planification notée",
     scheduleRequestNotedDesc: "Le personnel de la clinique assurera un suivi en fonction de votre triage. Vous pouvez maintenant fermer ce panneau ou continuer à clavarder.",
     tableHeaderComplexity: "Complexité",
     tableHeaderReason: "Motif",
+    referencesMenuItem: "Références",
+    referencesPageTitle: "Références",
+    referencesPageDesc: "Informations sur les politiques, directives et sources utilisées par l'IA.",
+    placeholderSectionTitle: "Contenu à venir",
+    placeholderSectionContent: "Les références spécifiques et les documents sources qui éclairent les réponses de l'IA concernant les politiques médicales et les règles d'acheminement des FAC seront détaillés ici. Cela garantit la transparence et permet aux utilisateurs de comprendre la base des recommandations de l'IA.",
+    placeholderCheckBack: "Veuillez revenir plus tard pour des informations à jour.",
   },
 };
 
