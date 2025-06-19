@@ -126,11 +126,20 @@ const translations: Record<Language, Record<string, string>> = {
     tableHeaderComplexity: "Complexity",
     tableHeaderReason: "Reason",
     referencesMenuItem: "References",
-    referencesPageTitle: "References",
-    referencesPageDesc: "Information about policies, guidelines, and sources used by the AI.",
+    referencesPageTitle: "References & LLM Prompts",
+    referencesPageDesc: "This page contains information about the policies, guidelines, and the exact prompts used by the AI assistant.",
     placeholderSectionTitle: "Content Coming Soon",
     placeholderSectionContent: "The specific references and source materials that inform the AI's responses regarding CAF medical policies and routing rules will be detailed here. This ensures transparency and allows users to understand the basis of the AI's recommendations.",
     placeholderCheckBack: "Please check back later for updated information.",
+    triageChatbotPromptTitle: "Triage Chatbot Core Prompt",
+    triageChatbotPromptDesc: "This is the main prompt used by the Gemini model for the triage chatbot flow (via Genkit ai.definePrompt). Handlebars ({{...}}) are used for templating chat history and user input.",
+    policyRoutingPromptsTitle: "Policy-Based Routing Prompts",
+    policyRoutingGenkitPromptLabel: "Genkit Flow Prompt (Gemini)",
+    policyRoutingGenkitPromptDesc: "This prompt instructs the Gemini model (via Genkit) to use the \"getCaFRoutingRecommendation\" tool for policy-based routing.",
+    policyRoutingOpenRouterSystemPromptLabel: "OpenRouter Tool: System Prompt (Llama 3)",
+    policyRoutingOpenRouterSystemPromptDesc: "This is the system prompt sent to the Llama 3 model via OpenRouter within the \"getCaFRoutingRecommendation\" tool.",
+    policyRoutingOpenRouterUserPromptLabel: "OpenRouter Tool: User Prompt (Llama 3)",
+    policyRoutingOpenRouterUserPromptDesc: "This is an example of the user prompt structure sent to the Llama 3 model via OpenRouter. The actual triage text is dynamically inserted.",
   },
   fr: {
     appName: "CAF MedRoute",
@@ -243,11 +252,20 @@ const translations: Record<Language, Record<string, string>> = {
     tableHeaderComplexity: "Complexité",
     tableHeaderReason: "Motif",
     referencesMenuItem: "Références",
-    referencesPageTitle: "Références",
-    referencesPageDesc: "Informations sur les politiques, directives et sources utilisées par l'IA.",
+    referencesPageTitle: "Références et Invites LLM",
+    referencesPageDesc: "Cette page contient des informations sur les politiques, les directives et les invites exactes utilisées par l'assistant IA.",
     placeholderSectionTitle: "Contenu à venir",
     placeholderSectionContent: "Les références spécifiques et les documents sources qui éclairent les réponses de l'IA concernant les politiques médicales et les règles d'acheminement des FAC seront détaillés ici. Cela garantit la transparence et permet aux utilisateurs de comprendre la base des recommandations de l'IA.",
     placeholderCheckBack: "Veuillez revenir plus tard pour des informations à jour.",
+    triageChatbotPromptTitle: "Invite Principale du Chatbot de Triage",
+    triageChatbotPromptDesc: "Ceci est l'invite principale utilisée par le modèle Gemini pour le flux du chatbot de triage (via Genkit ai.definePrompt). Handlebars ({{...}}) est utilisé pour la création de modèles d'historique de clavardage et d'entrée utilisateur.",
+    policyRoutingPromptsTitle: "Invites d'Acheminement Basé sur les Politiques",
+    policyRoutingGenkitPromptLabel: "Invite de Flux Genkit (Gemini)",
+    policyRoutingGenkitPromptDesc: "Cette invite demande au modèle Gemini (via Genkit) d'utiliser l'outil \"getCaFRoutingRecommendation\" pour l'acheminement basé sur les politiques.",
+    policyRoutingOpenRouterSystemPromptLabel: "Outil OpenRouter : Invite Système (Llama 3)",
+    policyRoutingOpenRouterSystemPromptDesc: "Ceci est l'invite système envoyée au modèle Llama 3 via OpenRouter au sein de l'outil \"getCaFRoutingRecommendation\".",
+    policyRoutingOpenRouterUserPromptLabel: "Outil OpenRouter : Invite Utilisateur (Llama 3)",
+    policyRoutingOpenRouterUserPromptDesc: "Ceci est un exemple de la structure d'invite utilisateur envoyée au modèle Llama 3 via OpenRouter. Le texte de triage réel est inséré dynamiquement.",
   },
 };
 
@@ -312,3 +330,5 @@ export const useLanguage = (): LanguageContextType => {
   }
   return context;
 };
+
+    
