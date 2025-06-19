@@ -114,20 +114,24 @@ const chatBotFlow = ai.defineFlow(
     inputSchema: ChatBotInputSchema,
     outputSchema: ChatBotOutputSchema,
   },
-  async input => {
-    const result = await prompt(input);
-    if (!result.output || !result.output.appointmentType || !result.output.reason || !result.output.complexity) {
+  async (input): Promise<ChatBotOutput> => { // Explicitly type the return Promise
+    const { output } = await prompt(input); // 'output' is ChatBotOutput | undefined
+
+    if (!output) { // Simplified check: if output is undefined (parsing/LLM failed)
       console.error(
-        'Triage chatbot flow: AI prompt did not return a valid or complete output.',
-        'Input:', JSON.stringify(input),
-        'Raw AI Result (if available):', JSON.stringify(result) 
+        'Triage chatbot flow: AI prompt did not return a valid output object.',
+        'Input:', JSON.stringify(input)
       );
-      return {
+      // This object must conform to ChatBotOutput
+      const errorResponse: ChatBotOutput = {
         appointmentType: "Error",
         reason: "The AI assistant encountered an issue and could not provide a recommendation. Please try rephrasing your concern or contact support if the problem persists. You can check server logs for more details if you are an administrator.",
-        complexity: "complex", // Default to complex for review
+        complexity: "complex", // "complex" is a valid enum member
       };
+      return errorResponse;
     }
-    return result.output;
+    // If we are here, 'output' is of type ChatBotOutput, so all fields are valid as per schema.
+    return output;
   }
 );
+
