@@ -109,9 +109,13 @@ export function TriageSessionsTable({ sessions, onViewDetails, onPrepareForClini
               </TableCell>
               <TableCell className="text-center py-3">
                 {session.emergencyAlertTriggered ? (
-                  <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive mx-auto" title={t('yes') || "Yes"}/>
+                  <span title={t('yes') || "Yes"}>
+                    <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive mx-auto" />
+                  </span>
                 ) : (
-                  <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 mx-auto" title={t('no') || "No"} />
+                  <span title={t('no') || "No"}>
+                    <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 mx-auto" />
+                  </span>
                 )}
               </TableCell>
               <TableCell className="text-right space-x-0.5 sm:space-x-1 py-2">
