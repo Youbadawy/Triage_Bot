@@ -1,8 +1,9 @@
-import { embeddingService } from './embedding-service';
-import { medicalChunker, policyChunker, DocumentChunk } from './document-chunker';
-import { vectorSearchService, medicalReferenceService } from '../supabase/services';
 import { supabase } from '../supabase/config';
-import type { MedicalReference } from '../supabase/types';
+import { vectorSearchService } from '../supabase/services';
+import { embeddingService } from './embedding-service';
+import { medicalChunker } from './document-chunker';
+import { cacheService } from '../cache/cache-service';
+import { secureLogger } from '../utils/secret-scrubber';
 
 export interface RAGSearchResult {
   content: string;
@@ -30,6 +31,27 @@ export interface RAGContext {
   contextSummary: string;
 }
 
+interface SearchOptions {
+  limit?: number;
+  threshold?: number;
+  documentTypes?: string[];
+}
+
+interface IndexStatus {
+  totalDocuments: number;
+  indexedDocuments: number;
+  totalChunks: number;
+  lastIndexed?: string;
+}
+
+interface VectorSearchResult {
+  id: string;
+  reference_id: string;
+  content: string;
+  metadata: any;
+  similarity: number;
+}
+
 export class RAGService {
   private static instance: RAGService;
 
@@ -41,105 +63,113 @@ export class RAGService {
   }
 
   /**
-   * Ingest a medical reference document into the vector database
+   * Ingest a document into the vector database
    */
-  async ingestDocument(referenceId: string): Promise<boolean> {
+  async ingestDocument(documentId: string): Promise<boolean> {
+    const startTime = Date.now();
+    
     try {
-      console.log(`🔄 Ingesting document: ${referenceId}`);
+      console.log(`� Ingesting document: ${documentId}`);
 
-      // Get the document from medical_references
-      const { data: reference, error } = await supabase
+      // Get the document
+      const { data: document, error: docError } = await supabase
         .from('medical_references')
         .select('*')
-        .eq('id', referenceId)
+        .eq('id', documentId)
+        .eq('is_active', true)
         .single();
 
-      if (error || !reference) {
-        console.error('Document not found:', error);
+      if (docError || !document) {
+        secureLogger.error('Document not found or inactive:', { documentId, error: docError });
         return false;
       }
 
-      // Choose chunker based on document type
-      const chunker = reference.document_type === 'policy' ? policyChunker : medicalChunker;
+      // Check if document is already processed
+      const { data: existingChunks } = await supabase
+        .from('document_chunks')
+        .select('id')
+        .eq('reference_id', documentId)
+        .limit(1);
+
+      if (existingChunks && existingChunks.length > 0) {
+        console.log(`📄 Document ${documentId} already ingested, skipping`);
+        return true;
+      }
 
       // Chunk the document
-      const chunks = await chunker.chunkDocument(reference.content, {
-        documentId: reference.id,
-        documentTitle: reference.title,
-        documentType: reference.document_type,
-        source: reference.source,
+      const chunks = await medicalChunker.chunkDocument(document.content, {
+        documentId: document.id,
+        documentTitle: document.title,
+        documentType: document.document_type,
+        source: document.source,
       });
 
-      const validChunks = chunker.filterChunks(chunks);
-      console.log(`📄 Created ${validChunks.length} valid chunks`);
+      if (chunks.length === 0) {
+        console.warn(`📄 No chunks generated for document ${documentId}`);
+        return false;
+      }
 
-      // Generate embeddings for all chunks
-      const embeddings = await embeddingService.generateEmbeddings(
-        validChunks.map(chunk => chunk.content)
-      );
+      // Generate embeddings for all chunks in batch
+      const chunkTexts = chunks.map(chunk => chunk.content);
+      const embeddings = await embeddingService.generateEmbeddings(chunkTexts);
 
-      // Insert chunks into document_chunks table
-      const chunkInserts = validChunks.map((chunk, index) => ({
-        reference_id: referenceId,
-        chunk_index: chunk.metadata.chunkIndex,
+      // Prepare batch insert data
+      const chunksToInsert = chunks.map((chunk, index) => ({
+        reference_id: documentId,
+        chunk_index: index,
         content: chunk.content,
         embedding: JSON.stringify(embeddings[index]),
         metadata: chunk.metadata,
       }));
 
+      // Batch insert all chunks
       const { error: insertError } = await supabase
         .from('document_chunks')
-        .insert(chunkInserts);
+        .insert(chunksToInsert);
 
       if (insertError) {
-        console.error('Error inserting chunks:', insertError);
+        secureLogger.error('Error inserting document chunks:', insertError);
         return false;
       }
 
-      console.log(`✅ Successfully ingested ${validChunks.length} chunks for document: ${reference.title}`);
+      // Invalidate relevant caches
+      cacheService.invalidate('rag', documentId);
+      cacheService.invalidate('db', 'medical_references');
+
+      const processingTime = Date.now() - startTime;
+      console.log(`✅ Document ${documentId} ingested successfully with ${chunks.length} chunks in ${processingTime}ms`);
+      
       return true;
     } catch (error) {
-      console.error('Error ingesting document:', error);
+      secureLogger.error('Error ingesting document:', { documentId, error });
       return false;
     }
   }
 
   /**
-   * Ingest all medical references
-   */
-  async ingestAllDocuments(): Promise<{ success: number; failed: number }> {
-    console.log('🔄 Starting bulk document ingestion...');
-
-    const references = await medicalReferenceService.getByType('protocol');
-    const guidelines = await medicalReferenceService.getByType('guideline');
-    const allDocs = [...references, ...guidelines];
-
-    let success = 0;
-    let failed = 0;
-
-    for (const doc of allDocs) {
-      const result = await this.ingestDocument(doc.id);
-      if (result) {
-        success++;
-      } else {
-        failed++;
-      }
-    }
-
-    console.log(`✅ Ingestion complete: ${success} successful, ${failed} failed`);
-    return { success, failed };
-  }
-
-  /**
-   * Search for relevant documents using vector similarity
+   * Search for relevant documents using vector similarity with caching
+   * FIXED: N+1 query issue by batching database queries
    */
   async searchDocuments(
     query: string,
-    options: {
-      limit?: number;
-      threshold?: number;
-      documentTypes?: string[];
-    } = {}
+    options: SearchOptions = {}
+  ): Promise<RAGSearchResult[]> {
+    const cacheKey = `search:${query}`;
+    
+    return await cacheService.cacheRAGSearch(
+      query,
+      options,
+      () => this.performSearch(query, options),
+      60 * 60 * 1000 // 1 hour TTL
+    );
+  }
+
+  /**
+   * Actual search implementation without caching
+   */
+  private async performSearch(
+    query: string,
+    options: SearchOptions = {}
   ): Promise<RAGSearchResult[]> {
     const startTime = Date.now();
     
@@ -156,18 +186,41 @@ export class RAGService {
         options.limit || 10
       );
 
-      // Get full document details for each result
-      const enrichedResults: RAGSearchResult[] = [];
+      if (searchResults.length === 0) {
+        console.log('🔍 No search results found');
+        return [];
+      }
 
-      for (const result of searchResults) {
-        const { data: reference } = await supabase
-          .from('medical_references')
-          .select('*')
-          .eq('id', result.reference_id)
-          .single();
+      // FIXED: Batch query instead of N+1 individual queries
+      const referenceIds = [...new Set(searchResults.map((result: VectorSearchResult) => result.reference_id))];
+      
+      // Single query to get all required references
+      const { data: references, error: refError } = await supabase
+        .from('medical_references')
+        .select('*')
+        .in('id', referenceIds)
+        .eq('is_active', true);
 
-        if (reference && (!options.documentTypes || options.documentTypes.includes(reference.document_type))) {
-          enrichedResults.push({
+      if (refError) {
+        secureLogger.error('Error fetching medical references:', refError);
+        return [];
+      }
+
+      // Create a map for O(1) lookup
+      const referenceMap = new Map(references?.map(ref => [ref.id, ref]) || []);
+
+      // Build enriched results
+      const enrichedResults: RAGSearchResult[] = searchResults
+        .map((result: VectorSearchResult) => {
+          const reference = referenceMap.get(result.reference_id);
+          
+          // Filter by document type if specified
+          if (!reference || 
+              (options.documentTypes && !options.documentTypes.includes(reference.document_type))) {
+            return null;
+          }
+
+          return {
             content: result.content,
             similarity: result.similarity,
             metadata: {
@@ -183,35 +236,48 @@ export class RAGService {
               url: reference.url,
               source: reference.source,
             },
-          });
-        }
-      }
+          };
+        })
+        .filter(Boolean) as RAGSearchResult[];
 
       const searchTime = Date.now() - startTime;
       console.log(`✅ Found ${enrichedResults.length} relevant chunks in ${searchTime}ms`);
 
       return enrichedResults;
     } catch (error) {
-      console.error('Error searching documents:', error);
+      secureLogger.error('Error searching documents:', { query, options, error });
       return [];
     }
   }
 
   /**
-   * Get RAG context for a medical query
+   * Get RAG context for a medical query with caching
    */
   async getContext(
     query: string,
-    options: {
-      maxResults?: number;
-      threshold?: number;
-      documentTypes?: string[];
-    } = {}
+    options: SearchOptions = {}
+  ): Promise<RAGContext> {
+    const cacheKey = `context:${query}`;
+    
+    return await cacheService.cacheRAGSearch(
+      query,
+      options,
+      () => this.buildContext(query, options),
+      30 * 60 * 1000 // 30 minutes TTL
+    );
+  }
+
+  /**
+   * Build context without caching
+   */
+  private async buildContext(
+    query: string,
+    options: SearchOptions = {}
   ): Promise<RAGContext> {
     const startTime = Date.now();
 
-    const results = await this.searchDocuments(query, {
-      limit: options.maxResults || 5,
+    const results = await this.performSearch(query, {
+      limit: options.limit || 5,
       threshold: options.threshold || 0.78,
       documentTypes: options.documentTypes,
     });
@@ -231,69 +297,78 @@ export class RAGService {
   }
 
   /**
-   * Create a summary of the retrieved context
+   * Create a summary of the search context
    */
   private createContextSummary(results: RAGSearchResult[]): string {
     if (results.length === 0) {
-      return 'No relevant medical documents found for this query.';
+      return 'No relevant medical information found for this query.';
     }
 
     const documentTypes = [...new Set(results.map(r => r.metadata.documentType))];
     const sources = [...new Set(results.map(r => r.metadata.source))];
-
-    return `Found ${results.length} relevant sections from ${documentTypes.join(', ')} documents (${sources.join(', ')}). Average relevance: ${(results.reduce((sum, r) => sum + r.similarity, 0) / results.length * 100).toFixed(1)}%.`;
-  }
-
-  /**
-   * Get context for triage decision making
-   */
-  async getTriageContext(symptoms: string, appointmentType?: string): Promise<RAGContext> {
-    // Create a comprehensive query for triage
-    let query = `medical triage symptoms: ${symptoms}`;
     
-    if (appointmentType) {
-      query += ` ${appointmentType} appointment criteria`;
+    let summary = `Found ${results.length} relevant medical references`;
+    
+    if (documentTypes.length > 0) {
+      summary += ` from ${documentTypes.join(', ')} documents`;
     }
+    
+    if (sources.length > 0) {
+      summary += ` sourced from ${sources.join(', ')}`;
+    }
+    
+    // Add relevance information
+    const avgSimilarity = results.reduce((sum, r) => sum + r.similarity, 0) / results.length;
+    summary += `. Average relevance: ${(avgSimilarity * 100).toFixed(1)}%`;
 
-    // Focus on protocols and guidelines
-    return this.getContext(query, {
-      maxResults: 3,
-      threshold: 0.75,
-      documentTypes: ['protocol', 'guideline'],
-    });
+    return summary;
   }
 
   /**
-   * Get emergency assessment context
+   * Remove document from vector database
    */
-  async getEmergencyContext(symptoms: string): Promise<RAGContext> {
-    return this.getContext(`emergency symptoms: ${symptoms}`, {
-      maxResults: 3,
-      threshold: 0.80,
-      documentTypes: ['protocol'],
-    });
+  async removeDocument(documentId: string): Promise<boolean> {
+    try {
+      console.log(`🗑️ Removing document: ${documentId}`);
+
+      const { error } = await supabase
+        .from('document_chunks')
+        .delete()
+        .eq('reference_id', documentId);
+
+      if (error) {
+        secureLogger.error('Error removing document chunks:', error);
+        return false;
+      }
+
+      // Invalidate relevant caches
+      cacheService.invalidate('rag', documentId);
+      cacheService.invalidate('db', 'medical_references');
+
+      console.log(`✅ Document ${documentId} removed successfully`);
+      return true;
+    } catch (error) {
+      secureLogger.error('Error removing document:', { documentId, error });
+      return false;
+    }
   }
 
   /**
-   * Get mental health context
+   * Check if documents are indexed with caching
    */
-  async getMentalHealthContext(concerns: string): Promise<RAGContext> {
-    return this.getContext(`mental health: ${concerns}`, {
-      maxResults: 3,
-      threshold: 0.75,
-      documentTypes: ['protocol', 'guideline'],
-    });
+  async getIndexStatus(): Promise<IndexStatus> {
+    return await cacheService.cacheDBQuery(
+      'index_status',
+      {},
+      () => this.fetchIndexStatus(),
+      5 * 60 * 1000 // 5 minutes TTL
+    );
   }
 
   /**
-   * Check if documents are indexed
+   * Fetch index status without caching
    */
-  async getIndexStatus(): Promise<{
-    totalDocuments: number;
-    indexedDocuments: number;
-    totalChunks: number;
-    lastIndexed?: string;
-  }> {
+  private async fetchIndexStatus(): Promise<IndexStatus> {
     try {
       // Get total documents
       const { count: totalDocuments } = await supabase
@@ -328,7 +403,7 @@ export class RAGService {
         lastIndexed: lastChunk?.created_at,
       };
     } catch (error) {
-      console.error('Error getting index status:', error);
+      secureLogger.error('Error getting index status:', error);
       return {
         totalDocuments: 0,
         indexedDocuments: 0,
@@ -338,27 +413,28 @@ export class RAGService {
   }
 
   /**
-   * Clear all indexed chunks (useful for re-indexing)
+   * Get system health and performance metrics
    */
-  async clearIndex(): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('document_chunks')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+  getHealthMetrics() {
+    const cacheStats = cacheService.getStats();
+    const cacheHealth = cacheService.getHealthStatus();
+    
+    return {
+      cache: cacheHealth,
+      ragCacheHitRate: cacheStats.rag?.hitRate || 0,
+      dbCacheHitRate: cacheStats.db?.hitRate || 0,
+    };
+  }
 
-      if (error) {
-        console.error('Error clearing index:', error);
-        return false;
-      }
-
-      console.log('✅ Index cleared successfully');
-      return true;
-    } catch (error) {
-      console.error('Error clearing index:', error);
-      return false;
-    }
+  /**
+   * Clear all RAG-related caches
+   */
+  clearCache(): void {
+    cacheService.invalidate('rag', '');
+    cacheService.invalidate('db', 'medical_references');
+    console.log('🧹 RAG cache cleared');
   }
 }
 
+// Export singleton instance
 export const ragService = RAGService.getInstance(); 

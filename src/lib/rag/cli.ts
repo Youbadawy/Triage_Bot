@@ -1,205 +1,257 @@
 #!/usr/bin/env node
 
 import { simpleRAGSearch } from './simple-search';
-import { medicalReferenceService } from '../supabase/services';
+import { supabase } from '../supabase/config';
 import { ragService } from './rag-service';
 
 async function main() {
-  const args = process.argv.slice(2);
-  const command = args[0];
-
-  console.log('🏥 CAF MedRoute RAG Management CLI\n');
-
+  const command = process.argv[2];
+  
   switch (command) {
-    case 'status':
-      await showStatus();
-      break;
-    
-    case 'ingest':
-      const documentId = args[1];
-      if (documentId) {
-        await ingestDocument(documentId);
-      } else {
-        await ingestAllDocuments();
-      }
-      break;
-    
     case 'search':
-      const query = args.slice(1).join(' ');
-      if (query) {
-        await searchDocuments(query);
-      } else {
-        console.log('❌ Please provide a search query');
-      }
+      await handleSearch();
       break;
-    
-    case 'test':
-      await testRAGSystem();
+    case 'ingest':
+      await handleIngest();
       break;
-    
-    case 'clear':
-      await clearIndex();
+    case 'status':
+      await handleStatus();
       break;
-    
-    case 'list':
-      await listDocuments();
+    case 'clear-cache':
+      await handleClearCache();
       break;
-    
+    case 'health':
+      await handleHealth();
+      break;
     default:
       showHelp();
   }
 }
 
-async function showStatus() {
-  console.log('📊 RAG System Status\n');
-  
-  try {
-    const status = await simpleRAGSearch.getStatus();
-    
-    console.log(`📚 Total Documents: ${status.totalDocuments}`);
-    console.log(`📄 Total Chunks: ${status.totalChunks}`);
-    console.log(`⏰ Last Update: ${status.lastUpdate ? new Date(status.lastUpdate).toLocaleString() : 'Never'}`);
-    
-    console.log('\n✅ Simple RAG Search is operational');
-    console.log('💡 Use "npm run rag search <query>" to test search functionality');
-  } catch (error) {
-    console.error('❌ Error getting status:', error);
-  }
+function showHelp() {
+  console.log(`
+🏥 CAF MedRoute RAG CLI
+
+Usage: npm run rag <command> [options]
+
+Commands:
+  search <query>     Search the medical knowledge base
+  ingest [docId]     Ingest documents into the vector database
+  status            Show index status and statistics
+  clear-cache       Clear all RAG caches
+  health            Show system health metrics
+  help              Show this help message
+
+Examples:
+  npm run rag search "chest pain protocols"
+  npm run rag ingest doc123
+  npm run rag ingest (ingests all available documents)
+  npm run rag status
+  npm run rag clear-cache
+  npm run rag health
+  `);
 }
 
-async function ingestDocument(documentId: string) {
-  console.log(`🔄 Ingesting document: ${documentId}\n`);
+async function handleSearch() {
+  const query = process.argv[3];
+  
+  if (!query) {
+    console.error('❌ Please provide a search query');
+    console.log('Usage: npm run rag search "your query here"');
+    return;
+  }
+
+  console.log(`🔍 Searching for: "${query}"`);
   
   try {
-    const success = await ragService.ingestDocument(documentId);
-    if (success) {
-      console.log('✅ Document ingested successfully');
-    } else {
-      console.log('❌ Failed to ingest document');
+    const results = await ragService.searchDocuments(query, {
+      limit: 5,
+      threshold: 0.75
+    });
+
+    if (results.length === 0) {
+      console.log('� No results found');
+      return;
     }
-  } catch (error) {
-    console.error('❌ Error ingesting document:', error);
-  }
-}
 
-async function ingestAllDocuments() {
-  console.log('🔄 Ingesting all documents...\n');
-  
-  try {
-    const result = await ragService.ingestAllDocuments();
-    console.log(`\n✅ Ingestion complete:`);
-    console.log(`   - Successful: ${result.success}`);
-    console.log(`   - Failed: ${result.failed}`);
-  } catch (error) {
-    console.error('❌ Error ingesting documents:', error);
-  }
-}
-
-async function searchDocuments(query: string) {
-  console.log(`🔍 Searching for: "${query}"\n`);
-  
-  try {
-    const results = await simpleRAGSearch.searchDocuments(query, { limit: 5 });
-    
-    console.log(`📊 Search Results (${results.length} found):\n`);
+    console.log(`\n✅ Found ${results.length} results:\n`);
     
     results.forEach((result, index) => {
-      console.log(`${index + 1}. ${result.documentTitle}`);
-      console.log(`   📋 Type: ${result.documentType} | Source: ${result.source}`);
-      console.log(`   🎯 Relevance: ${(result.relevanceScore * 100).toFixed(1)}%`);
-      console.log(`   📄 Content: ${result.content.substring(0, 200)}...`);
+      console.log(`${index + 1}. ${result.sourceDocument.title}`);
+      console.log(`   � Similarity: ${(result.similarity * 100).toFixed(1)}%`);
+      console.log(`   📄 Source: ${result.metadata.source}`);
+      console.log(`   📝 Excerpt: ${result.content.substring(0, 150)}...`);
       console.log('');
     });
+
+    // Get RAG context
+    console.log('🧠 Getting RAG context...');
+    const context = await ragService.getContext(query, { limit: 2 });
+    console.log(`� Context Summary: ${context.contextSummary}`);
+    console.log(`⏱️  Search Time: ${context.searchTime}ms`);
+    
   } catch (error) {
-    console.error('❌ Error searching documents:', error);
+    console.error('❌ Search failed:', error);
   }
 }
 
-async function testRAGSystem() {
-  console.log('🧪 Testing RAG System\n');
+async function handleIngest() {
+  const documentId = process.argv[3];
   
-  const testQueries = [
-    'chest pain emergency',
-    'mental health crisis',
-    'sick parade guidelines',
-    'fever symptoms',
-    'suicidal thoughts'
-  ];
-  
-  for (const query of testQueries) {
-    console.log(`Testing: "${query}"`);
+  if (documentId) {
+    // Ingest specific document
+    console.log(`📄 Ingesting document: ${documentId}`);
     
     try {
-      const context = await ragService.getContext(query, { maxResults: 2 });
-      console.log(`  ✅ Found ${context.totalResults} results in ${context.searchTime}ms`);
+      const success = await ragService.ingestDocument(documentId);
       
-      if (context.results.length > 0) {
-        const bestMatch = context.results[0];
-        console.log(`  🎯 Best match: ${bestMatch.metadata.documentTitle} (${(bestMatch.similarity * 100).toFixed(1)}%)`);
+      if (success) {
+        console.log('✅ Document ingested successfully');
+      } else {
+        console.log('❌ Failed to ingest document');
       }
     } catch (error) {
-      console.log(`  ❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('❌ Ingestion failed:', error);
     }
+  } else {
+    // Ingest all available documents
+    console.log('📚 Starting bulk document ingestion...');
     
-    console.log('');
+    try {
+      // Get all available medical references using supabase directly
+      const { data: references, error } = await supabase
+        .from('medical_references')
+        .select('id, title, document_type')
+        .eq('is_active', true);
+
+      if (error || !references) {
+        console.error('❌ Failed to fetch documents:', error);
+        return;
+      }
+
+      console.log(`📋 Found ${references.length} documents to ingest`);
+      
+      let success = 0;
+      let failed = 0;
+
+      for (const doc of references) {
+        console.log(`📄 Processing: ${doc.title} (${doc.document_type})`);
+        
+        try {
+          const result = await ragService.ingestDocument(doc.id);
+          if (result) {
+            success++;
+            console.log(`  ✅ Success`);
+          } else {
+            failed++;
+            console.log(`  ❌ Failed`);
+          }
+        } catch (error) {
+          failed++;
+          console.log(`  ❌ Error: ${error}`);
+        }
+      }
+
+      console.log(`\n📊 Ingestion complete:`);
+      console.log(`  ✅ Successful: ${success}`);
+      console.log(`  ❌ Failed: ${failed}`);
+      console.log(`  📈 Success Rate: ${((success / (success + failed)) * 100).toFixed(1)}%`);
+      
+    } catch (error) {
+      console.error('❌ Bulk ingestion failed:', error);
+    }
   }
 }
 
-async function clearIndex() {
-  console.log('🗑️ Clearing RAG index...\n');
+async function handleStatus() {
+  console.log('📊 Getting index status...');
   
   try {
-    const success = await ragService.clearIndex();
-    if (success) {
-      console.log('✅ Index cleared successfully');
-    } else {
-      console.log('❌ Failed to clear index');
+    const status = await ragService.getIndexStatus();
+    
+    console.log('\n📋 Index Status:');
+    console.log(`  📄 Total Documents: ${status.totalDocuments}`);
+    console.log(`  ✅ Indexed Documents: ${status.indexedDocuments}`);
+    console.log(`  🧩 Total Chunks: ${status.totalChunks}`);
+    console.log(`  📈 Index Coverage: ${((status.indexedDocuments / status.totalDocuments) * 100).toFixed(1)}%`);
+    
+    if (status.lastIndexed) {
+      const lastIndexed = new Date(status.lastIndexed);
+      console.log(`  🕒 Last Indexed: ${lastIndexed.toLocaleString()}`);
     }
+    
+    const avgChunksPerDoc = status.indexedDocuments > 0 ? 
+      (status.totalChunks / status.indexedDocuments).toFixed(1) : '0';
+    console.log(`  📊 Avg Chunks/Document: ${avgChunksPerDoc}`);
+    
   } catch (error) {
-    console.error('❌ Error clearing index:', error);
+    console.error('❌ Failed to get status:', error);
   }
 }
 
-async function listDocuments() {
-  console.log('📚 Available Documents\n');
+async function handleClearCache() {
+  console.log('🧹 Clearing RAG caches...');
   
   try {
-    const protocols = await medicalReferenceService.getByType('protocol');
-    const guidelines = await medicalReferenceService.getByType('guideline');
+    ragService.clearCache();
+    console.log('✅ Cache cleared successfully');
     
-    console.log('📋 Protocols:');
-    protocols.forEach(doc => {
-      console.log(`  - ${doc.title} (${doc.id})`);
-      console.log(`    Source: ${doc.source} | Tags: ${doc.tags?.join(', ') || 'None'}`);
-    });
+    // Show cache stats after clearing
+    const healthMetrics = ragService.getHealthMetrics();
+    console.log('\n📊 Cache Statistics (after clearing):');
+    console.log(`  🎯 RAG Cache Hit Rate: ${(healthMetrics.ragCacheHitRate * 100).toFixed(1)}%`);
+    console.log(`  🗄️  DB Cache Hit Rate: ${(healthMetrics.dbCacheHitRate * 100).toFixed(1)}%`);
     
-    console.log('\n📖 Guidelines:');
-    guidelines.forEach(doc => {
-      console.log(`  - ${doc.title} (${doc.id})`);
-      console.log(`    Source: ${doc.source} | Tags: ${doc.tags?.join(', ') || 'None'}`);
-    });
   } catch (error) {
-    console.error('❌ Error listing documents:', error);
+    console.error('❌ Failed to clear cache:', error);
   }
 }
 
-function showHelp() {
-  console.log('Usage: npm run rag <command> [options]\n');
-  console.log('Commands:');
-  console.log('  status              Show RAG system status');
-  console.log('  ingest [doc-id]     Ingest document(s) into vector database');
-  console.log('  search <query>      Search documents using vector similarity');
-  console.log('  test                Run test queries against the system');
-  console.log('  clear               Clear the entire vector index');
-  console.log('  list                List all available documents');
-  console.log('  help                Show this help message\n');
-  console.log('Examples:');
-  console.log('  npm run rag status');
-  console.log('  npm run rag ingest');
-  console.log('  npm run rag search "chest pain emergency"');
-  console.log('  npm run rag test');
+async function handleHealth() {
+  console.log('🏥 Checking system health...');
+  
+  try {
+    const healthMetrics = ragService.getHealthMetrics();
+    const indexStatus = await ragService.getIndexStatus();
+    
+    console.log('\n� System Health Report:');
+    console.log('\n📈 Performance Metrics:');
+    console.log(`  🎯 RAG Cache Hit Rate: ${(healthMetrics.ragCacheHitRate * 100).toFixed(1)}%`);
+    console.log(`  🗄️  DB Cache Hit Rate: ${(healthMetrics.dbCacheHitRate * 100).toFixed(1)}%`);
+    console.log(`  ⚡ Cache Health: ${healthMetrics.cache.healthy ? '✅ Healthy' : '⚠️ Degraded'}`);
+    console.log(`  📊 Cache Size: ${healthMetrics.cache.totalSize} entries`);
+    
+    console.log('\n📋 Index Health:');
+    console.log(`  📄 Documents: ${indexStatus.indexedDocuments}/${indexStatus.totalDocuments} (${((indexStatus.indexedDocuments / indexStatus.totalDocuments) * 100).toFixed(1)}%)`);
+    console.log(`  🧩 Total Chunks: ${indexStatus.totalChunks}`);
+    
+    // Overall health assessment
+    const overallHealth = 
+      healthMetrics.cache.healthy && 
+      healthMetrics.ragCacheHitRate > 0.3 && 
+      indexStatus.indexedDocuments > 0;
+    
+    console.log(`\n🎯 Overall Status: ${overallHealth ? '✅ HEALTHY' : '⚠️ NEEDS ATTENTION'}`);
+    
+    if (!overallHealth) {
+      console.log('\n🔧 Recommendations:');
+      if (healthMetrics.ragCacheHitRate < 0.3) {
+        console.log('  • Cache hit rate is low - consider warming up cache');
+      }
+      if (indexStatus.indexedDocuments === 0) {
+        console.log('  • No documents indexed - run ingestion: npm run rag ingest');
+      }
+      if (!healthMetrics.cache.healthy) {
+        console.log('  • Cache issues detected - consider restarting service');
+      }
+    }
+    
+  } catch (error) {
+    console.error('❌ Health check failed:', error);
+  }
 }
 
+// Run the CLI
 if (require.main === module) {
   main().catch(console.error);
 } 
