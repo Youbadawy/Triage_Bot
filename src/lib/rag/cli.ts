@@ -2,6 +2,7 @@
 
 import { simpleRAGSearch } from './simple-search';
 import { medicalReferenceService } from '../supabase/services';
+import { ragService } from './rag-service';
 
 async function main() {
   const args = process.argv.slice(2);
