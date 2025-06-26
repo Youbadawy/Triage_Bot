@@ -19,6 +19,9 @@ export interface AppointmentRecommendation {
   appointmentType: string;
   reason: string;
   complexity: 'easy' | 'medium' | 'complex';
+  evidenceBased?: boolean;
+  sources?: string[];
+  ragContext?: any; // Optional RAG search context
 }
 
 export interface TriageSession {
@@ -42,4 +45,7 @@ export interface AIChatOutput {
   appointmentType: string;
   reason: string;
   complexity: 'easy' | 'medium' | 'complex';
+  evidenceBased?: boolean;
+  sources?: string[];
+  ragContext?: any; // Optional RAG search context
 }

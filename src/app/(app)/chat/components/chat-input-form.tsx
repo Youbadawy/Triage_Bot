@@ -2,20 +2,16 @@
 
 import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea'; // Changed from Input to Textarea
-import { Paperclip, SendHorizonal } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { SendHorizonal } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-context';
-import { checkForEmergencyKeywords } from '../actions'; // Server action for keyword check
+import { checkForEmergencyKeywords } from '../actions';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 
-const chatInputSchema = z.object({
-  message: z.string().min(1, { message: 'Message cannot be empty' }).max(2000, {message: 'Message too long'}),
-});
-
-type ChatFormInputs = z.infer<typeof chatInputSchema>;
+interface ChatFormInputs {
+  message: string;
+}
 
 interface ChatInputFormProps {
   onSubmit: (message: string) => Promise<void>;
@@ -33,28 +29,29 @@ export function ChatInputForm({ onSubmit, isLoading, onEmergencyKeywordDetected 
     reset,
     formState: { errors },
   } = useForm<ChatFormInputs>({
-    resolver: zodResolver(chatInputSchema),
+    defaultValues: {
+      message: ''
+    }
   });
 
   const handleFormSubmit: SubmitHandler<ChatFormInputs> = async (data) => {
+    if (!data.message?.trim()) return;
+    
     setIsCheckingEmergency(true);
     try {
       const emergencyCheckResult = await checkForEmergencyKeywords({ text: data.message }, language);
       if (emergencyCheckResult.isEmergency) {
         onEmergencyKeywordDetected();
-        // Do not submit the message if it's an emergency, or handle differently
-        // For now, we'll clear and let the parent handle UI update
         reset();
         setIsCheckingEmergency(false);
         return;
       }
     } catch (error) {
       console.error("Error checking emergency keywords:", error);
-      // Proceed with submission even if keyword check fails, but log error
     }
     setIsCheckingEmergency(false);
 
-    if (!isLoading) { // Double check isLoading before submitting
+    if (!isLoading) {
       await onSubmit(data.message);
       reset();
     }
@@ -70,8 +67,12 @@ export function ChatInputForm({ onSubmit, isLoading, onEmergencyKeywordDetected 
         id="message"
         placeholder={t('typeYourMessage') || "Type your message..."}
         className="flex-1 resize-none rounded-xl border-input bg-card p-3 shadow-sm focus-visible:ring-1 focus-visible:ring-ring min-h-[52px] max-h-[150px]"
-        rows={1} // Start with 1 row, will expand
-        {...register('message')}
+        rows={1}
+        {...register('message', { 
+          required: true,
+          minLength: 1,
+          maxLength: 2000 
+        })}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -91,7 +92,7 @@ export function ChatInputForm({ onSubmit, isLoading, onEmergencyKeywordDetected 
         <span className="sr-only">{t('attachFile') || "Attach file"}</span>
       </Button>
       */}
-      {errors.message && <p id="message-error" className="sr-only text-sm text-destructive">{errors.message.message}</p>}
+      {errors.message && <p id="message-error" className="sr-only text-sm text-destructive">Message cannot be empty</p>}
     </form>
   );
 }

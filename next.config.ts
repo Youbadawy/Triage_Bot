@@ -1,14 +1,8 @@
-
-import type {NextConfig} from 'next';
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
-  typescript: {
-    ignoreBuildErrors: false, // Changed to false to surface potential type errors
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  transpilePackages: ['lucide-react'],
   images: {
     remotePatterns: [
       {
@@ -18,6 +12,15 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  env: {
+    customKey: 'my-value',
+  },
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 };
 

@@ -37,8 +37,12 @@ export default function SignupPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SignupFormInputs>({
-    resolver: zodResolver(signupSchema),
+  } = useForm({
+    defaultValues: {
+      email: '',
+      password: '',
+      displayName: ''
+    }
   });
 
   useEffect(() => {

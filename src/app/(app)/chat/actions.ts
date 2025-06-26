@@ -2,7 +2,7 @@
 'use server';
 
 import { z } from 'zod';
-import { chatBot } from '@/ai/flows/triage-chatbot';
+import { enhancedTriageChatbot } from '@/ai/flows/enhanced-triage-with-rag';
 import type { AIChatInput, AIChatOutput, ChatMessage } from '@/types';
 // Firebase Admin SDK imports removed as they are not used and causing build errors.
 // Actual Firestore writes are handled client-side in chat/page.tsx.
@@ -26,12 +26,13 @@ export async function processChatMessage(input: z.infer<typeof ChatActionInputSc
   try {
     const validatedInput = ChatActionInputSchema.parse(input);
 
-    const aiInput: AIChatInput = {
-      userInput: validatedInput.userInput,
-      chatHistory: validatedInput.chatHistory,
+    const triageInput = {
+      message: validatedInput.userInput,
+      chatHistory: validatedInput.chatHistory || [],
+      userId: validatedInput.userId,
     };
 
-    const aiOutput: AIChatOutput = await chatBot(aiInput);
+    const aiOutput = await enhancedTriageChatbot(triageInput);
     
     const assistantMessage: ChatMessage = {
       id: crypto.randomUUID(),
