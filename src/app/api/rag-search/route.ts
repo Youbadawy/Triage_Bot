@@ -4,12 +4,47 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+// Check if we're in development mode with placeholder credentials
+const isDevelopmentMode = supabaseUrl.includes('your-project.supabase.co') || supabaseKey.includes('your-anon-key-here');
+
 export async function POST(request: NextRequest) {
   try {
     const { query } = await request.json();
     
     if (!query || typeof query !== 'string') {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
+    }
+
+    // Return mock search results in development mode
+    if (isDevelopmentMode) {
+      console.log(`🔍 RAG Search (DEV MODE): "${query}"`);
+      
+      const mockResults = [
+        {
+          content: `Based on medical protocols, for symptoms like "${query}", the recommended approach is to assess severity and provide appropriate triage recommendations.`,
+          title: 'CAF Medical Protocols',
+          document_type: 'protocol',
+          similarity_score: 0.89,
+          chunk_index: 1,
+          source: 'CAF Medical Protocols'
+        },
+        {
+          content: `Emergency procedures indicate that patients with "${query}" should be evaluated for immediate care requirements and proper referral pathways.`,
+          title: 'Emergency Procedures',
+          document_type: 'guideline', 
+          similarity_score: 0.76,
+          chunk_index: 3,
+          source: 'Emergency Procedures'
+        }
+      ];
+      
+      return NextResponse.json({
+        query,
+        results: mockResults,
+        timestamp: new Date().toISOString(),
+        mode: 'development',
+        note: 'Using mock data. Configure Supabase credentials for real RAG search.'
+      });
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);

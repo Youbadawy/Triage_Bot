@@ -1,4 +1,3 @@
-
 // PolicyDrivenAppointmentRouting
 'use server';
 /**
@@ -48,7 +47,7 @@ const getCaFRoutingRecommendation = ai.defineTool(
       };
     }
 
-    const modelName = "meta-llama/llama-4-scout:free"; // Updated to Llama 4 Scout
+    const modelName = "meta-llama/llama-4-scout"; // Updated to clean Llama 4 Scout model name
 
     const systemPrompt = `You are an AI assistant acting as LLaMA 4 Scout, an expert in Canadian Armed Forces (CAF) medical policies and appointment routing rules. Your task is to analyze the provided triage text and recommend an appropriate medical appointment type based on CAF guidelines. You must strictly adhere to providing a response in the specified JSON format. Do not include any explanatory text or markdown formatting outside of the JSON structure itself.`;
 

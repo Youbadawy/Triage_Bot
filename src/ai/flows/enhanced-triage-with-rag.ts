@@ -2,6 +2,7 @@
 // Provides evidence-based medical recommendations using document search
 
 import { callOpenRouter } from '../genkit';
+import { ai } from '../genkit';
 import { simpleRAGSearch, type SearchContext } from '../../lib/rag/simple-search';
 
 export interface TriageInput {
@@ -12,7 +13,7 @@ export interface TriageInput {
 }
 
 export interface TriageOutput {
-  appointmentType: 'sick parade' | 'GP' | 'mental health' | 'physio' | 'specialist' | 'ER referral';
+  appointmentType: 'sick parade' | 'GP' | 'mental health' | 'physio' | 'specialist' | 'ER referral' | 'no appointment needed';
   reason: string;
   complexity: 'easy' | 'medium' | 'complex';
   ragContext?: SearchContext;
@@ -27,6 +28,12 @@ export async function enhancedTriageChatbot(input: TriageInput): Promise<TriageO
   console.log('🏥 Enhanced Triage with RAG - Processing:', input.message);
 
   try {
+    // Step 0: Check if this is a non-medical query first
+    if (isNonMedicalQuery(input.message)) {
+      console.log('ℹ️ Detected non-medical query, providing appropriate response');
+      return handleNonMedicalQuery(input.message);
+    }
+
     // Step 1: Analyze the user's input to extract medical keywords
     const medicalKeywords = extractMedicalKeywords(input.message);
     console.log('🔍 Extracted medical keywords:', medicalKeywords);
@@ -60,13 +67,45 @@ export async function enhancedTriageChatbot(input: TriageInput): Promise<TriageO
     // Step 3: Create enhanced prompt with medical context
     const enhancedPrompt = createEnhancedTriagePrompt(input, ragContext);
 
-    // Step 4: Call OpenRouter with enhanced context
-    const response = await callOpenRouter({
-      model: 'meta-llama/llama-4-maverick:free',
-      messages: [{ role: 'user', content: enhancedPrompt }],
-      temperature: 0.1,
-      max_tokens: 4000,
-    });
+    // Step 4: Call AI with enhanced context - Use Google Gemini as primary
+    let response: string;
+    
+    try {
+      // Try Google Gemini first (working API key)
+      const { output } = await ai.generate({
+        model: 'googleai/gemini-2.0-flash-latest',
+        prompt: enhancedPrompt,
+        config: {
+          temperature: 0.1,
+          maxOutputTokens: 4000,
+        },
+      });
+      
+      response = output?.text || '';
+      if (!response.trim()) {
+        throw new Error('Google Gemini returned empty response');
+      }
+      console.log('✅ Google Gemini response successful');
+    } catch (geminiError) {
+      console.log('⚠️ Google Gemini failed, trying OpenRouter...');
+      
+      try {
+        // Fallback to OpenRouter 
+        response = await callOpenRouter({
+          model: 'meta-llama/llama-4-maverick',
+          messages: [{ role: 'user', content: enhancedPrompt }],
+          temperature: 0.1,
+          max_tokens: 4000,
+        });
+        console.log('✅ OpenRouter response successful');
+      } catch (openRouterError) {
+        console.log('⚠️ OpenRouter failed, using development mode...');
+        console.log('🔧 AI system running in DEVELOPMENT MODE - using mock responses');
+        
+        // Ultimate fallback: development mode
+        response = generateMockTriageResponse(input, ragContext);
+      }
+    }
 
     // Step 5: Parse the response
     const triageResult = parseTriageResponse(response);
@@ -173,9 +212,16 @@ function isMentalHealthIndicator(message: string): boolean {
  * Create enhanced prompt with RAG context
  */
 function createEnhancedTriagePrompt(input: TriageInput, ragContext?: SearchContext): string {
-  let prompt = `You are LLaMA 4 Maverick, a friendly, empathetic, and highly professional Canadian Armed Forces medical triage assistant.
+  let prompt = `You are an expert Canadian Armed Forces medical triage assistant powered by Google Gemini. You are friendly, empathetic, and highly professional.
 
-Your primary role is to understand the user's symptoms or medical concerns through natural, straightforward conversation, recommend an appropriate type of medical appointment, and guide them on next steps, including how to schedule if they wish.`;
+Your primary role is to understand the user's symptoms or medical concerns through natural conversation, recommend an appropriate type of medical appointment, and guide them on next steps.
+
+CRITICAL: You must respond with valid JSON in exactly this format:
+{
+  "appointmentType": "one of: sick parade, GP, mental health, physio, specialist, ER referral, no appointment needed",
+  "reason": "detailed explanation of your recommendation and next steps",
+  "complexity": "one of: easy, medium, complex"
+}`;
 
   // Add RAG context if available
   if (ragContext && ragContext.results.length > 0) {
@@ -192,51 +238,37 @@ ${result.content.substring(0, 300)}...
 
 `;
     }
+    
+    prompt += `Please use this evidence-based context to inform your triage decision.
 
-    prompt += `Please use this medical reference information to provide evidence-based recommendations while maintaining your conversational and empathetic tone.`;
+`;
   }
 
   prompt += `
 
-The 'appointmentType' field in your JSON output is for internal categorization and must be one of these exact strings: "sick parade", "GP", "mental health", "physio", "specialist", or "ER referral".
+USER'S MESSAGE: "${input.message}"
 
-The 'complexity' field in your JSON output must be one of "easy", "medium", or "complex".
-- "easy": Simple, straightforward cases that can be handled by the bot (e.g., a common cold).
-- "medium": Cases that are not emergencies but require some attention (e.g., a persistent cough).
-- "complex": Cases that are not immediate emergencies but should be reviewed by a primary care clinician (e.g., multiple interacting symptoms, chronic conditions).
+APPOINTMENT TYPES AVAILABLE:
+- **sick parade**: For routine, non-urgent medical issues
+- **GP**: For general medical concerns requiring physician assessment  
+- **mental health**: For psychological, emotional, or mental health concerns
+- **physio**: For musculoskeletal injuries, mobility issues, or rehabilitation
+- **specialist**: For complex conditions requiring specialized medical expertise
+- **ER referral**: For urgent/emergency situations requiring immediate care
+- **no appointment needed**: For non-medical queries, greetings, tests, or when no medical intervention is required
 
-The 'reason' field in your JSON output is your primary conversational response to the user. It MUST be structured clearly and directly as follows:
-1. Start by acknowledging their concern or input.
-2. State your recommended 'appointmentType' in user-friendly terms (e.g., "Based on what you've described, I recommend you see a General Practitioner (GP), who is also known as a Primary Care Clinician.").
-3. Clearly explain *why* this appointment type is recommended based on their input.`;
+RESPONSE REQUIREMENTS:
+1. Analyze the user's input and context
+2. Choose the most appropriate appointment type (including "no appointment needed" for non-medical queries)
+3. For medical concerns: provide clear reasoning based on medical best practices
+4. For non-medical queries: provide helpful, friendly responses without forcing medical appointments
+5. Include appropriate guidance on next steps
+6. Use warm, professional, and reassuring language
+7. Format as valid JSON with no extra text
 
-  if (ragContext && ragContext.results.length > 0) {
-    prompt += `
-4. Reference the supporting medical documentation when relevant (e.g., "According to CAF medical protocols, [relevant guideline]").`;
-  }
-
-  prompt += `
-5. Provide concise, actionable next steps (e.g., "To proceed, you should contact your base clinic or local medical facility to schedule an appointment. Let them know you've been advised to see a GP or Primary Care Clinician based on a triage assessment.").
-6. After providing the recommendation and initial next steps, ask the user if they would like more specific information on booking this appointment or if they have any other questions.
-7. Always maintain an empathetic, professional, and helpful tone. Encourage further questions.
-
-If the user's input strongly indicates a life-threatening emergency (e.g., severe chest pain, difficulty breathing, uncontrolled bleeding, active suicidal thoughts with a plan and intent), your 'appointmentType' must be "ER referral" and the 'complexity' must be "complex".
-In such cases, the 'reason' must be very direct, strongly advising them to seek immediate emergency care.
-
-Chat History:
-${input.chatHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
-
-User's current input: "${input.message}"
-
-Based on all the information${ragContext ? ' and the medical reference context provided' : ''}, determine the most appropriate 'appointmentType' (for internal use) and 'complexity', and craft a comprehensive, conversational 'reason' for the user, following the multi-point structure above.
-
-Your response MUST be in the following JSON format. Do not add any other text, explanations, or markdown formatting outside of the JSON structure itself.
-
-{
-  "appointmentType": "string (must be one of: sick parade, GP, mental health, physio, specialist, ER referral)",
-  "reason": "string (your detailed, conversational, and explanatory response to the user, structured as per the guidelines above)",
-  "complexity": "string (must be one of: easy, medium, complex)"
-}`;
+Remember: 
+- For medical concerns: When in doubt about severity, err on the side of caution and recommend a higher level of care
+- For non-medical queries: Don't force medical appointments - use "no appointment needed" and provide helpful information`;
 
   return prompt;
 }
@@ -246,23 +278,46 @@ Your response MUST be in the following JSON format. Do not add any other text, e
  */
 function parseTriageResponse(response: string): Pick<TriageOutput, 'appointmentType' | 'reason' | 'complexity'> {
   try {
-    const parsed = JSON.parse(response);
+    // Check if response is empty or whitespace
+    if (!response || !response.trim()) {
+      console.error('❌ Empty response received from AI service');
+      throw new Error('Empty response from AI service');
+    }
+
+    console.log(`🔍 Parsing response (${response.length} chars):`, response.substring(0, 200) + '...');
     
+    // Clean up the response - remove markdown code blocks if present
+    let cleanResponse = response.trim();
+    if (cleanResponse.startsWith('```json')) {
+      cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanResponse.startsWith('```')) {
+      cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    const parsed = JSON.parse(cleanResponse);
+
     // Validate required fields
     if (!parsed.appointmentType || !parsed.reason || !parsed.complexity) {
-      throw new Error('Missing required fields in response');
+      console.error('❌ Missing required fields in response:', { 
+        hasAppointmentType: !!parsed.appointmentType,
+        hasReason: !!parsed.reason,
+        hasComplexity: !!parsed.complexity 
+      });
+      throw new Error('Missing required fields in AI response');
     }
 
-    // Validate appointmentType
-    const validAppointmentTypes = ['sick parade', 'GP', 'mental health', 'physio', 'specialist', 'ER referral'];
+    // Validate appointmentType values
+    const validAppointmentTypes = ['sick parade', 'GP', 'mental health', 'physio', 'specialist', 'ER referral', 'no appointment needed'];
     if (!validAppointmentTypes.includes(parsed.appointmentType)) {
-      throw new Error(`Invalid appointmentType: ${parsed.appointmentType}`);
+      console.error('❌ Invalid appointmentType:', parsed.appointmentType);
+      parsed.appointmentType = 'GP'; // Default fallback
     }
 
-    // Validate complexity
-    const validComplexities = ['easy', 'medium', 'complex'];
-    if (!validComplexities.includes(parsed.complexity)) {
-      throw new Error(`Invalid complexity: ${parsed.complexity}`);
+    // Validate complexity values
+    const validComplexity = ['easy', 'medium', 'complex'];
+    if (!validComplexity.includes(parsed.complexity)) {
+      console.error('❌ Invalid complexity:', parsed.complexity);
+      parsed.complexity = 'medium'; // Default fallback
     }
 
     return {
@@ -274,11 +329,130 @@ function parseTriageResponse(response: string): Pick<TriageOutput, 'appointmentT
     console.error('❌ Error parsing triage response:', error);
     console.error('❌ Raw response:', response);
     
-    // Return fallback response
+    // Return safe fallback
     return {
       appointmentType: 'GP',
-      reason: 'I apologize, but I had trouble processing your request. For your safety, I recommend scheduling an appointment with a General Practitioner (GP) to discuss your concerns. Please contact your base clinic to book an appointment.',
+      reason: 'I apologize, but I encountered a technical issue while processing your request. For your safety, I recommend scheduling an appointment with a General Practitioner (GP) to discuss your concerns. Please contact your base clinic to book an appointment.',
       complexity: 'medium',
     };
   }
+}
+
+/**
+ * Generate mock triage response for development mode
+ */
+function generateMockTriageResponse(input: TriageInput, ragContext?: SearchContext): string {
+  const message = input.message.toLowerCase();
+  
+  // Check for non-medical queries first
+  if (isNonMedicalQuery(input.message)) {
+    const nonMedicalResponse = handleNonMedicalQuery(input.message);
+    return JSON.stringify({
+      appointmentType: nonMedicalResponse.appointmentType,
+      reason: nonMedicalResponse.reason + "\n\n[DEV MODE: This is a mock response. To enable full AI capabilities, configure your OpenRouter or Google API keys.]",
+      complexity: nonMedicalResponse.complexity
+    });
+  }
+  
+  // Determine mock appointment type based on keywords
+  let appointmentType = 'GP';
+  let complexity = 'medium';
+  let reason = '';
+  
+  if (message.includes('emergency') || message.includes('urgent') || message.includes('chest pain') || message.includes('can\'t breathe')) {
+    appointmentType = 'ER referral';
+    complexity = 'complex';
+    reason = 'Based on what you\'ve described, this appears to be an urgent situation that requires immediate medical attention. I strongly recommend you go to the Emergency Room (ER) right away or call emergency services. Please don\'t delay seeking immediate care.';
+  } else if (message.includes('stress') || message.includes('anxiety') || message.includes('depression') || message.includes('mental health')) {
+    appointmentType = 'mental health';
+    complexity = 'medium';
+    reason = 'I understand you\'re dealing with mental health concerns. Based on what you\'ve shared, I recommend scheduling an appointment with a Mental Health Professional or counselor. They can provide specialized support and appropriate treatment options for your situation.';
+  } else if (message.includes('physio') || message.includes('muscle') || message.includes('joint') || message.includes('back pain') || message.includes('injury')) {
+    appointmentType = 'physio';
+    complexity = 'medium';
+    reason = 'From what you\'ve described, it sounds like you may benefit from physiotherapy. I recommend seeing a Physiotherapist who can assess your condition and provide appropriate treatment and rehabilitation exercises.';
+  } else if (message.includes('specialist') || message.includes('chronic') || message.includes('ongoing')) {
+    appointmentType = 'specialist';
+    complexity = 'complex';
+    reason = 'Based on your description, this may require specialized medical attention. I recommend seeing a Specialist who can provide more targeted evaluation and treatment for your specific condition.';
+  } else if (message.includes('cold') || message.includes('flu') || message.includes('minor')) {
+    appointmentType = 'sick parade';
+    complexity = 'easy';
+    reason = 'This sounds like it could be managed at sick parade. I recommend attending sick parade at your unit for an initial assessment and basic medical care.';
+  } else {
+    appointmentType = 'GP';
+    complexity = 'medium';
+    reason = 'Based on what you\'ve described, I recommend scheduling an appointment with a General Practitioner (GP), also known as a Primary Care Clinician. They can properly assess your symptoms and determine the best course of treatment.';
+  }
+  
+  // Add RAG context note if available
+  if (ragContext && ragContext.results.length > 0) {
+    reason += ` This recommendation is supported by CAF medical protocols and guidelines.`;
+  }
+  
+  reason += ` To proceed, please contact your base clinic or local medical facility to schedule an appointment. Would you like more information about booking this appointment or do you have any other questions?`;
+  
+  // Add development mode note
+  reason += ` 
+
+[DEV MODE: This is a mock response. To enable full AI capabilities, configure your OpenRouter or Google API keys.]`;
+
+  return JSON.stringify({
+    appointmentType,
+    reason,
+    complexity
+  });
+}
+
+/**
+ * Check if the input is a non-medical query
+ */
+function isNonMedicalQuery(message: string): boolean {
+  const messageLower = message.toLowerCase().trim();
+  
+  // Test messages
+  if (messageLower === 'test' || messageLower === 'testing' || messageLower === 'hello' || 
+      messageLower === 'hi' || messageLower === 'hey' || messageLower === 'ping') {
+    return true;
+  }
+  
+  // Greetings and general questions
+  const nonMedicalPatterns = [
+    /^(hello|hi|hey|good morning|good afternoon|good evening)/,
+    /^(test|testing|check)/,
+    /^(how are you|what can you do|how do you work)/,
+    /^(help|info|information|about)/,
+    /^(thank you|thanks|bye|goodbye)/,
+    /^(what|how|when|where|why).*(system|work|help|service)/
+  ];
+  
+  return nonMedicalPatterns.some(pattern => pattern.test(messageLower));
+}
+
+/**
+ * Handle non-medical queries appropriately
+ */
+function handleNonMedicalQuery(message: string): TriageOutput {
+  const messageLower = message.toLowerCase().trim();
+  
+  let reason = '';
+  
+  if (messageLower === 'test' || messageLower === 'testing') {
+    reason = "Hello! I see you're testing the system. I'm your CAF MedRoute medical triage assistant, and I'm working properly! ✅\n\nI'm here to help you with medical concerns, symptoms, or health-related questions. When you have actual medical symptoms or health concerns, just describe them to me and I'll provide appropriate appointment recommendations.\n\nHow can I assist you with your health needs today?";
+  } else if (messageLower.includes('hello') || messageLower.includes('hi') || messageLower.includes('hey')) {
+    reason = "Hello! Welcome to CAF MedRoute, your medical triage assistant. I'm here to help you understand your symptoms and recommend the appropriate type of medical appointment.\n\nPlease tell me about any symptoms, injuries, or health concerns you're experiencing, and I'll guide you toward the right care. What brings you here today?";
+  } else if (messageLower.includes('help') || messageLower.includes('how do you work')) {
+    reason = "I'm here to help you with medical triage! Here's how I work:\n\n• Describe your symptoms or health concerns to me\n• I'll analyze what you're experiencing\n• I'll recommend the most appropriate type of medical appointment\n• I'll guide you on next steps for getting care\n\nI can recommend appointments for: sick parade, GP visits, mental health services, physiotherapy, specialist referrals, or emergency care.\n\nWhat health concerns can I help you with today?";
+  } else if (messageLower.includes('thank') || messageLower.includes('bye')) {
+    reason = "You're welcome! Take care of yourself, and remember that I'm here whenever you need medical guidance. Stay safe and healthy! 🏥";
+  } else {
+    reason = "I'm your CAF MedRoute medical triage assistant. I'm designed to help with medical symptoms and health concerns to recommend appropriate care.\n\nIf you have medical symptoms, injuries, or health questions, please describe them and I'll provide guidance. For non-medical questions, you might want to contact your unit's information services.\n\nHow can I help with your health needs today?";
+  }
+  
+  return {
+    appointmentType: 'no appointment needed',
+    reason,
+    complexity: 'easy',
+    evidenceBased: false,
+  };
 } 

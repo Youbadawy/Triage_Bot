@@ -4,8 +4,50 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+// Check if we're in development mode with placeholder credentials
+const isDevelopmentMode = supabaseUrl.includes('your-project.supabase.co') || supabaseKey.includes('your-anon-key-here');
+
 export async function GET() {
   try {
+    // Return mock data in development mode
+    if (isDevelopmentMode) {
+      console.log('⚠️  RAG system running in DEVELOPMENT MODE - using mock data');
+      return NextResponse.json({
+        status: 'development_mode',
+        message: 'RAG system running in development mode with mock data',
+        totalDocuments: 3,
+        totalChunks: 42,
+        documents: [
+          {
+            id: 'mock-1',
+            title: 'CAF Medical Protocols',
+            document_type: 'protocol',
+            version: '2024.1',
+            created_at: new Date().toISOString(),
+            chunk_count: 15
+          },
+          {
+            id: 'mock-2', 
+            title: 'Emergency Procedures',
+            document_type: 'guideline',
+            version: '2024.1',
+            created_at: new Date().toISOString(),
+            chunk_count: 12
+          },
+          {
+            id: 'mock-3',
+            title: 'Mental Health Guidelines',
+            document_type: 'guideline', 
+            version: '2024.1',
+            created_at: new Date().toISOString(),
+            chunk_count: 15
+          }
+        ],
+        timestamp: new Date().toISOString(),
+        note: 'To enable full RAG functionality, configure your Supabase credentials in .env.local'
+      });
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     // Get medical references with chunk counts
