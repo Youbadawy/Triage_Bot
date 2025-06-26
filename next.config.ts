@@ -22,11 +22,9 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  experimental: {
-    turbo: {
-      resolveAlias: {
-        canvas: './empty-module.js',
-      },
+  turbo: {
+    resolveAlias: {
+      canvas: './empty-module.js',
     },
   },
   assetPrefix: process.env.NODE_ENV === 'production' ? '' : '',
