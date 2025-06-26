@@ -24,30 +24,26 @@ export default function ReferencesPage() {
   const loadReferences = async () => {
     setIsLoading(true);
     try {
-      // This would need to be implemented as an API route to call Supabase
-      // For now, we'll show the known references from our database setup
-      setReferences([
-        {
-          title: "CAF Medical Triage Protocol - Emergency Assessment",
-          document_type: "protocol",
-          version: "1.0",
-          chunk_count: 2
-        },
-        {
-          title: "CAF Mental Health Support Guidelines",
-          document_type: "guideline", 
-          version: "2.1",
-          chunk_count: 1
-        },
-        {
-          title: "CAF Appointment Scheduling Procedures",
-          document_type: "procedure",
-          version: "1.5",
-          chunk_count: 1
-        }
-      ]);
+      const response = await fetch('/api/rag-status');
+      const data = await response.json();
+      
+      if (data.status === 'operational') {
+        setReferences(data.documents || []);
+      } else {
+        console.error('RAG system not operational:', data.error);
+        // Fallback to show we have some data
+        setReferences([
+          {
+            title: "RAG System Unavailable",
+            document_type: "error",
+            version: "N/A",
+            chunk_count: 0
+          }
+        ]);
+      }
     } catch (error) {
       console.error('Error loading references:', error);
+      setReferences([]);
     } finally {
       setIsLoading(false);
     }
@@ -57,10 +53,23 @@ export default function ReferencesPage() {
     setIsTestLoading(true);
     setTestResult('');
     try {
-      // This would test the RAG search functionality
-      setTestResult('✅ RAG System Status: OPERATIONAL\n📚 Found 3 medical reference documents\n🔍 Document chunks: 4 total with vector embeddings\n🧠 Search capability: Text-based matching active\n📋 Emergency protocols: Available\n🏥 Triage guidelines: Ready for consultation');
+      const response = await fetch('/api/rag-search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: 'chest pain emergency' })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.results) {
+        setTestResult(`✅ RAG Search Test Successful: Found ${data.results.length} relevant medical protocols for "${data.query}".\n\nTop Result: "${data.results[0]?.title || 'No results'}" (${Math.round((data.results[0]?.similarity_score || 0) * 100)}% relevance)`);
+      } else {
+        setTestResult('❌ RAG Search Test Failed: ' + (data.error || 'Unknown error'));
+      }
     } catch (error) {
-      setTestResult('❌ RAG system test failed: ' + (error as Error).message);
+      setTestResult('❌ RAG Search Test Failed: ' + (error as Error).message);
     } finally {
       setIsTestLoading(false);
     }

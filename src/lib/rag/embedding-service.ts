@@ -1,9 +1,16 @@
 import OpenAI from 'openai';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI client with proper error handling
+const getOpenAI = () => {
+  const apiKey = process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    throw new Error('OpenAI API key is not configured');
+  }
+  return new OpenAI({
+    apiKey: apiKey,
+    baseURL: process.env.OPENROUTER_API_KEY ? 'https://openrouter.ai/api/v1' : undefined,
+  });
+};
 
 export class EmbeddingService {
   private static instance: EmbeddingService;
@@ -22,6 +29,7 @@ export class EmbeddingService {
    */
   async generateEmbedding(text: string): Promise<number[]> {
     try {
+      const openai = getOpenAI();
       const response = await openai.embeddings.create({
         model: this.model,
         input: text.trim(),
@@ -44,6 +52,7 @@ export class EmbeddingService {
    */
   async generateEmbeddings(texts: string[]): Promise<number[][]> {
     try {
+      const openai = getOpenAI();
       const response = await openai.embeddings.create({
         model: this.model,
         input: texts.map(text => text.trim()),
@@ -54,7 +63,7 @@ export class EmbeddingService {
         throw new Error('Mismatch between input texts and embedding responses');
       }
 
-      return response.data.map(item => item.embedding);
+      return response.data.map((item: any) => item.embedding);
     } catch (error) {
       console.error('Error generating embeddings:', error);
       throw new Error(`Failed to generate embeddings: ${error instanceof Error ? error.message : 'Unknown error'}`);
