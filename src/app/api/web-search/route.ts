@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { webSearchService } from '@/lib/rag/web-search-service';
+
+// Lazy import to avoid build-time Supabase initialization errors
+let webSearchService: any = null;
+
+async function getWebSearchService() {
+  if (!webSearchService) {
+    const module = await import('@/lib/rag/web-search-service');
+    webSearchService = module.webSearchService;
+  }
+  return webSearchService;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +19,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
+    const service = await getWebSearchService();
     let results;
     let summary = '';
     let ingestedCount = 0;
@@ -19,13 +30,13 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Trade is required for trade_requirements search' }, { status: 400 });
         }
         console.log(`🔍 Searching for ${trade} requirements`);
-        results = await webSearchService.findTradeRequirements(trade);
+        results = await service.findTradeRequirements(trade);
         summary = `Found ${results.length} medical requirements for ${trade}`;
         break;
 
       case 'research':
         console.log(`🔍 Researching topic: ${query}`);
-        const researchResult = await webSearchService.researchMedicalTopic(query);
+        const researchResult = await service.researchMedicalTopic(query);
         results = researchResult.documents;
         summary = researchResult.summary;
         ingestedCount = researchResult.ingestedCount;
@@ -34,7 +45,7 @@ export async function POST(request: NextRequest) {
       case 'general':
       default:
         console.log(`🔍 General search: ${query}`);
-        results = await webSearchService.searchCAFMedicalDocs(query);
+        results = await service.searchCAFMedicalDocs(query);
         summary = `Found ${results.length} relevant documents`;
         break;
     }
@@ -68,7 +79,8 @@ export async function GET(request: NextRequest) {
 
   try {
     console.log(`🔍 Quick search: ${query}`);
-    const results = await webSearchService.searchCAFMedicalDocs(query);
+    const service = await getWebSearchService();
+    const results = await service.searchCAFMedicalDocs(query);
     
     return NextResponse.json({
       query,
