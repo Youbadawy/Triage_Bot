@@ -15,8 +15,19 @@ env:
     value: staging
     availability:
       - RUNTIME
-  # Add staging-specific environment variables here
-  # Example: staging database connections, API endpoints, etc.
+  # API Keys and sensitive data as secrets
+  - variable: OPENAI_API_KEY
+    secret: OPENAI_API_KEY
+    availability:
+      - RUNTIME
+  - variable: SUPABASE_URL
+    secret: SUPABASE_URL
+    availability:
+      - RUNTIME
+  - variable: SUPABASE_ANON_KEY
+    secret: SUPABASE_ANON_KEY
+    availability:
+      - RUNTIME
 
 runConfig:
   # Reduced resources for staging environment

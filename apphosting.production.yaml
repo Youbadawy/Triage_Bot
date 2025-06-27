@@ -15,13 +15,19 @@ env:
     value: production
     availability:
       - RUNTIME
-  # Add production-specific environment variables here
-  # Use secrets for sensitive data like API keys, database URLs, etc.
-  # Example:
-  # - variable: DATABASE_URL
-  #   secret: prod-database-url
-  # - variable: OPENAI_API_KEY
-  #   secret: prod-openai-api-key
+  # API Keys and sensitive data as secrets
+  - variable: OPENAI_API_KEY
+    secret: OPENAI_API_KEY
+    availability:
+      - RUNTIME
+  - variable: SUPABASE_URL
+    secret: SUPABASE_URL
+    availability:
+      - RUNTIME
+  - variable: SUPABASE_ANON_KEY
+    secret: SUPABASE_ANON_KEY
+    availability:
+      - RUNTIME
 
 runConfig:
   # Production-grade resources
