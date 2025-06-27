@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Check if we're in development mode with placeholder credentials
-const isDevelopmentMode = supabaseUrl.includes('your-project.supabase.co') || supabaseKey.includes('your-anon-key-here');
+const isDevelopmentMode = !supabaseUrl || !supabaseKey || 
+  supabaseUrl.includes('your-project.supabase.co') || 
+  supabaseKey.includes('your-anon-key-here');
 
 export async function GET() {
   try {
