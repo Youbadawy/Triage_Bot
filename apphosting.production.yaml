@@ -1,0 +1,32 @@
+# Production Environment Configuration for CAF Triage Bot
+# Optimized for performance and reliability in production
+
+env:
+  - variable: NODE_ENV
+    value: production
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NPM_CONFIG_LEGACY_PEER_DEPS
+    value: "true"
+    availability:
+      - BUILD
+  - variable: ENVIRONMENT
+    value: production
+    availability:
+      - RUNTIME
+  # Add production-specific environment variables here
+  # Use secrets for sensitive data like API keys, database URLs, etc.
+  # Example:
+  # - variable: DATABASE_URL
+  #   secret: prod-database-url
+  # - variable: OPENAI_API_KEY
+  #   secret: prod-openai-api-key
+
+runConfig:
+  # Production-grade resources
+  cpu: 2
+  memoryMiB: 1024
+  maxInstances: 10
+  minInstances: 1  # Keep at least 1 instance warm
+  concurrency: 50 

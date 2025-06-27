@@ -1,13 +1,24 @@
-# Settings to manage and configure a Firebase App Hosting backend.
+# Default Configuration for CAF Triage Bot
+# This is the fallback configuration used when environment-specific files aren't found
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
   - variable: NODE_ENV
     value: production
+    availability:
+      - BUILD
+      - RUNTIME
   - variable: NPM_CONFIG_LEGACY_PEER_DEPS
     value: "true"
+    availability:
+      - BUILD
+  # Environment variables will be set via Firebase Console or environment-specific configs
+  # DO NOT COMMIT API KEYS TO GITHUB! Use Firebase Secret Manager instead
 
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
-  maxInstances: 1
+  # Default resource allocation
+  cpu: 1
+  memoryMiB: 1024
+  maxInstances: 5
+  minInstances: 0
+  concurrency: 25

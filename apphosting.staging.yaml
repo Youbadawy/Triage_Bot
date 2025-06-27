@@ -1,0 +1,27 @@
+# Staging Environment Configuration for CAF Triage Bot
+# Lower resource allocation for cost optimization in staging
+
+env:
+  - variable: NODE_ENV
+    value: staging
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NPM_CONFIG_LEGACY_PEER_DEPS
+    value: "true"
+    availability:
+      - BUILD
+  - variable: ENVIRONMENT
+    value: staging
+    availability:
+      - RUNTIME
+  # Add staging-specific environment variables here
+  # Example: staging database connections, API endpoints, etc.
+
+runConfig:
+  # Reduced resources for staging environment
+  cpu: 1
+  memoryMiB: 512
+  maxInstances: 2
+  minInstances: 0
+  concurrency: 10 
