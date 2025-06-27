@@ -22,11 +22,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  turbo: {
-    resolveAlias: {
-      canvas: './empty-module.js',
-    },
-  },
+
   assetPrefix: process.env.NODE_ENV === 'production' ? '' : '',
   webpack: (config: any, { dev, isServer }: { dev: boolean; isServer: boolean }) => {
     if (!dev && !isServer) {
