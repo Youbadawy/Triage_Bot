@@ -2,16 +2,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { TriageSession, ChatMessage } from '@/types';
+import type { TriageSession, ChatMessage } from '../../../../types';
 import { TriageSessionsTable } from './components/triage-sessions-table';
 import { TriageSessionDetails } from './components/triage-session-details';
 import { PrepareForClinicModal } from './components/prepare-for-clinic-modal';
-import { LoadingSpinner } from '@/components/shared/loading-spinner';
-import { useAuth } from '@/contexts/auth-context';
-import { useLanguage } from '@/contexts/language-context';
+import { LoadingSpinner } from '../../../../components/shared/loading-spinner';
+import { useAuth } from '../../../../contexts/auth-context';
+import { useLanguage } from '../../../../contexts/language-context';
 import { collection, getDocs, query, orderBy, limit, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase/config';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { db } from '../../../../lib/firebase/config';
+import { Alert, AlertDescription, AlertTitle } from "../../../../components/ui/alert";
 import { AlertTriangle, ListChecks } from "lucide-react";
 
 const SESSIONS_LIMIT = 50; // Number of sessions to fetch

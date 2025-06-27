@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { TriageSession, ChatMessage } from '@/types';
+import type { TriageSession, ChatMessage } from '../../../../../types';
 import {
   Dialog,
   DialogContent,
@@ -9,12 +9,12 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
+} from '../../../../../components/ui/dialog';
+import { Button } from '../../../../../components/ui/button';
+import { ScrollArea } from '../../../../../components/ui/scroll-area';
+import { Badge } from '../../../../../components/ui/badge';
 import { Bot, User, AlertTriangle, CalendarDays, LanguagesIcon, Fingerprint, MessageSquare, CheckCircle2, XCircle, ShieldQuestion } from 'lucide-react';
-import { useLanguage } from '@/contexts/language-context';
+import { useLanguage } from '../../../../../contexts/language-context';
 import { format } from 'date-fns';
 import { fr as frLocale, enUS as enLocale } from 'date-fns/locale';
 import { Timestamp } from 'firebase/firestore';

@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { TriageSession, ChatMessage } from '@/types';
+import type { TriageSession, ChatMessage } from '../../../../../types';
 import {
   Dialog,
   DialogContent,
@@ -9,14 +9,14 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useLanguage } from '@/contexts/language-context';
+} from '../../../../../components/ui/dialog';
+import { Button } from '../../../../../components/ui/button';
+import { ScrollArea } from '../../../../../components/ui/scroll-area';
+import { useLanguage } from '../../../../../contexts/language-context';
 import { format } from 'date-fns';
 import { fr as frLocale, enUS as enLocale } from 'date-fns/locale';
 import { ClipboardCopy, AlertTriangle, CalendarDays, User, MessagesSquare, FileText } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../../../../hooks/use-toast';
 import { useEffect, useState } from 'react';
 import { Timestamp } from 'firebase/firestore';
 

@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { TriageSession } from '@/types';
+import type { TriageSession } from '../../../../../types';
 import {
   Table,
   TableBody,
@@ -10,11 +10,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge, badgeVariants } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+} from '../../../../../components/ui/table';
+import { Badge, badgeVariants } from '../../../../../components/ui/badge';
+import { Button } from '../../../../../components/ui/button';
 import { Eye, MessageCircle, AlertTriangle, FileText, CalendarClock, UserSquare, LanguagesIcon, HelpCircle, BrainCircuit } from 'lucide-react';
-import { useLanguage } from '@/contexts/language-context';
+import { useLanguage } from '../../../../../contexts/language-context';
 import { format } from 'date-fns';
 import { fr as frLocale, enUS as enLocale } from 'date-fns/locale';
 import { Timestamp } from 'firebase/firestore';
