@@ -18,7 +18,7 @@ import {
   SidebarInset
 } from '@/components/ui/sidebar';
 import Link from 'next/link';
-import { MessageSquareText, LayoutDashboard, HeartPulse, BookText, BookMarked } from 'lucide-react';
+import { MessageSquareText, LayoutDashboard, HeartPulse, BookText } from 'lucide-react';
 import { useLanguage } from '@/contexts/language-context';
 
 export default function AppLayout({
@@ -84,18 +84,7 @@ export default function AppLayout({
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={pathname.startsWith('/admin/prompt-references')}
-                    tooltip={t('adminPromptReferencesMenuItem')}
-                  >
-                    <Link href="/admin/prompt-references">
-                      <BookMarked />
-                      <span>{t('adminPromptReferencesMenuItem')}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+
               </>
             )}
             <SidebarMenuItem>

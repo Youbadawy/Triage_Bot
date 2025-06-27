@@ -125,8 +125,8 @@ const translations: Record<Language, Record<string, string>> = {
     scheduleRequestNotedDesc: "Clinic staff will follow up based on your triage. You can now close this panel or continue chatting.",
     tableHeaderComplexity: "Complexity",
     tableHeaderReason: "Reason",
-    referencesMenuItem: "References",
-    referencesPageTitle: "References & LLM Prompts",
+    referencesMenuItem: "Scout Agent",
+    referencesPageTitle: "Scout Agent - Medical Knowledge Explorer",
     referencesPageDesc: "This page contains information about the policies, guidelines, and the exact prompts used by the AI assistant.",
     placeholderSectionTitle: "Content Coming Soon",
     placeholderSectionContent: "The specific references and source materials that inform the AI's responses regarding CAF medical policies and routing rules will be detailed here. This ensures transparency and allows users to understand the basis of the AI's recommendations.",
@@ -145,9 +145,7 @@ const translations: Record<Language, Record<string, string>> = {
     policyRoutingOpenRouterUserPromptLabel: "OpenRouter Tool: User Prompt (LLaMA 4 Scout Persona)",
     policyRoutingOpenRouterUserPromptDesc: "This is an example of the user prompt structure sent to the LLaMA 4 Scout model via OpenRouter. The actual triage text is dynamically inserted.",
     policyRoutingOpenRouterUserPromptDesc_Llama4Scout: "This is an example of the user prompt structure sent to the LLaMA 4 Scout model via OpenRouter. The actual triage text is dynamically inserted.",
-    adminPromptReferencesMenuItem: "Prompt References (Admin)",
-    adminPromptReferencesPageTitle: "LLM Prompt References (Admin)",
-    adminPromptReferencesPageDesc: "This page displays the exact prompt content used by the AI models for triage and policy-based routing.",
+
 
   },
   fr: {
@@ -260,8 +258,8 @@ const translations: Record<Language, Record<string, string>> = {
     scheduleRequestNotedDesc: "Le personnel de la clinique assurera un suivi en fonction de votre triage. Vous pouvez maintenant fermer ce panneau ou continuer à clavarder.",
     tableHeaderComplexity: "Complexité",
     tableHeaderReason: "Motif",
-    referencesMenuItem: "Références",
-    referencesPageTitle: "Références et Invites LLM",
+    referencesMenuItem: "Agent Scout", 
+    referencesPageTitle: "Agent Scout - Explorateur de Connaissances Médicales",
     referencesPageDesc: "Cette page contient des informations sur les politiques, les directives et les invites exactes utilisées par l'assistant IA.",
     placeholderSectionTitle: "Contenu à venir",
     placeholderSectionContent: "Les références spécifiques et les documents sources qui éclairent les réponses de l'IA concernant les politiques médicales et les règles d'acheminement des FAC seront détaillés ici. Cela garantit la transparence et permet aux utilisateurs de comprendre la base des recommandations de l'IA.",
@@ -280,9 +278,7 @@ const translations: Record<Language, Record<string, string>> = {
     policyRoutingOpenRouterUserPromptLabel: "Outil OpenRouter : Invite Utilisateur (Personnalité LLaMA 4 Scout)",
     policyRoutingOpenRouterUserPromptDesc: "Ceci est un exemple de la structure d'invite utilisateur envoyée au modèle LLaMA 4 Scout via OpenRouter. Le texte de triage réel est inséré dynamiquement.",
     policyRoutingOpenRouterUserPromptDesc_Llama4Scout: "Ceci est un exemple de la structure d'invite utilisateur envoyée au modèle LLaMA 4 Scout via OpenRouter. Le texte de triage réel est inséré dynamiquement.",
-    adminPromptReferencesMenuItem: "Références d'Invite (Admin)",
-    adminPromptReferencesPageTitle: "Références d'Invite LLM (Admin)",
-    adminPromptReferencesPageDesc: "Cette page affiche le contenu exact des invites utilisées par les modèles IA pour le triage et l'acheminement basé sur les politiques.",
+
   },
 };
 

@@ -224,6 +224,25 @@ export const appointmentService = {
 
 // Medical Reference Services
 export const medicalReferenceService = {
+  async create(reference: Partial<MedicalReference>): Promise<MedicalReference> {
+    const { data, error } = await supabase
+      .from('medical_references')
+      .insert({
+        ...reference,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating medical reference:', error);
+      throw error;
+    }
+    return data;
+  },
+
   async searchReferences(query: string, documentType?: string): Promise<MedicalReference[]> {
     let queryBuilder = supabase
       .from('medical_references')
