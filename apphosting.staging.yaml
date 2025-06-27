@@ -16,8 +16,12 @@ env:
     availability:
       - RUNTIME
   # API Keys and sensitive data as secrets
-  - variable: OPENAI_API_KEY
-    secret: OPENAI_API_KEY
+  - variable: OPENROUTER_API_KEY
+    secret: OPENROUTER_API_KEY
+    availability:
+      - RUNTIME
+  - variable: GOOGLE_API_KEY
+    secret: GOOGLE_API_KEY
     availability:
       - RUNTIME
   - variable: SUPABASE_URL
