@@ -67,39 +67,39 @@ export async function enhancedTriageChatbot(input: TriageInput): Promise<TriageO
     // Step 3: Create enhanced prompt with medical context
     const enhancedPrompt = createEnhancedTriagePrompt(input, ragContext);
 
-    // Step 4: Call AI with enhanced context - Use Google Gemini as primary
+    // Step 4: Call AI with enhanced context - Use LLaMA 4 Maverick as primary
     let response: string;
     
     try {
-      // Try Google Gemini first (working API key)
-      const { output } = await ai.generate({
-        model: 'googleai/gemini-2.0-flash-latest',
-        prompt: enhancedPrompt,
-        config: {
-          temperature: 0.1,
-          maxOutputTokens: 4000,
-        },
+      // Try OpenRouter LLaMA 4 Maverick first (primary)
+      response = await callOpenRouter({
+        model: 'meta-llama/llama-4-maverick',
+        messages: [{ role: 'user', content: enhancedPrompt }],
+        temperature: 0.1,
+        max_tokens: 4000,
       });
-      
-      response = output?.text || '';
-      if (!response.trim()) {
-        throw new Error('Google Gemini returned empty response');
-      }
-      console.log('✅ Google Gemini response successful');
-    } catch (geminiError) {
-      console.log('⚠️ Google Gemini failed, trying OpenRouter...');
+      console.log('✅ LLaMA 4 Maverick (primary) response successful');
+    } catch (llamaError) {
+      console.log('⚠️ LLaMA 4 Maverick failed, trying Google Gemini backup...');
       
       try {
-        // Fallback to OpenRouter 
-        response = await callOpenRouter({
-          model: 'meta-llama/llama-4-maverick',
-          messages: [{ role: 'user', content: enhancedPrompt }],
-          temperature: 0.1,
-          max_tokens: 4000,
+        // Fallback to Google Gemini 2.5 Pro
+        const { output } = await ai.generate({
+          model: 'googleai/gemini-2.5-pro-latest',
+          prompt: enhancedPrompt,
+          config: {
+            temperature: 0.1,
+            maxOutputTokens: 4000,
+          },
         });
-        console.log('✅ OpenRouter response successful');
-      } catch (openRouterError) {
-        console.log('⚠️ OpenRouter failed, using development mode...');
+        
+        response = output?.text || '';
+        if (!response.trim()) {
+          throw new Error('Google Gemini returned empty response');
+        }
+        console.log('✅ Google Gemini 2.5 Pro (backup) response successful');
+      } catch (geminiError) {
+        console.log('⚠️ Both AI services failed, using development mode...');
         console.log('🔧 AI system running in DEVELOPMENT MODE - using mock responses');
         
         // Ultimate fallback: development mode
@@ -212,16 +212,26 @@ function isMentalHealthIndicator(message: string): boolean {
  * Create enhanced prompt with RAG context
  */
 function createEnhancedTriagePrompt(input: TriageInput, ragContext?: SearchContext): string {
-  let prompt = `You are an expert Canadian Armed Forces medical triage assistant powered by Google Gemini. You are friendly, empathetic, and highly professional.
+  let prompt = `You are an expert Canadian Armed Forces medical triage assistant powered by LLaMA 4 Maverick. You are friendly, empathetic, and highly professional.
 
 Your primary role is to understand the user's symptoms or medical concerns through natural conversation, recommend an appropriate type of medical appointment, and guide them on next steps.
 
-CRITICAL: You must respond with valid JSON in exactly this format:
+CRITICAL: You must respond with ONLY valid JSON in exactly this format (no additional text before or after):
 {
   "appointmentType": "one of: sick parade, GP, mental health, physio, specialist, ER referral, no appointment needed",
   "reason": "detailed explanation of your recommendation and next steps",
   "complexity": "one of: easy, medium, complex"
-}`;
+}
+
+IMPORTANT FOR CAF PILOT REQUIREMENTS:
+When asked about pilot medical requirements, include specific CAF aviation medicine standards:
+- Annual Aviation Medical Examination (AME)
+- Medical Category requirements (Cat 1, 2, 3)
+- Vision standards (20/20 corrected, color vision)
+- Hearing standards (audiometry requirements)
+- Cardiovascular fitness requirements
+- G-tolerance for fighter pilots
+- Contact information for Wing Aviation Medicine units`;
 
   // Add RAG context if available
   if (ragContext && ragContext.results.length > 0) {
@@ -286,12 +296,36 @@ function parseTriageResponse(response: string): Pick<TriageOutput, 'appointmentT
 
     console.log(`🔍 Parsing response (${response.length} chars):`, response.substring(0, 200) + '...');
     
-    // Clean up the response - remove markdown code blocks if present
+    // Clean up the response - extract JSON from various formats
     let cleanResponse = response.trim();
-    if (cleanResponse.startsWith('```json')) {
-      cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (cleanResponse.startsWith('```')) {
-      cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    
+    // Case 1: Direct JSON response
+    if (cleanResponse.startsWith('{')) {
+      // Already JSON, use as-is
+    }
+    // Case 2: Markdown JSON blocks
+    else if (cleanResponse.includes('```json')) {
+      const jsonMatch = cleanResponse.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        cleanResponse = jsonMatch[1].trim();
+      }
+    }
+    // Case 3: Any code blocks with JSON
+    else if (cleanResponse.includes('```')) {
+      const codeBlockMatch = cleanResponse.match(/```[a-zA-Z]*\s*([\s\S]*?)\s*```/);
+      if (codeBlockMatch) {
+        const blockContent = codeBlockMatch[1].trim();
+        if (blockContent.startsWith('{')) {
+          cleanResponse = blockContent;
+        }
+      }
+    }
+    // Case 4: JSON embedded in text (extract the JSON object)
+    else if (cleanResponse.includes('{')) {
+      const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanResponse = jsonMatch[0];
+      }
     }
     
     const parsed = JSON.parse(cleanResponse);
@@ -354,6 +388,16 @@ function generateMockTriageResponse(input: TriageInput, ragContext?: SearchConte
     });
   }
   
+  // Check for informational medical queries about CAF requirements
+  if (isInformationalMedicalQuery(input.message)) {
+    const informationalResponse = handleInformationalMedicalQuery(input.message, ragContext);
+    return JSON.stringify({
+      appointmentType: informationalResponse.appointmentType,
+      reason: informationalResponse.reason + "\n\n[DEV MODE: This is a mock response. To enable full AI capabilities, configure your OpenRouter or Google API keys.]",
+      complexity: informationalResponse.complexity
+    });
+  }
+  
   // Determine mock appointment type based on keywords
   let appointmentType = 'GP';
   let complexity = 'medium';
@@ -405,7 +449,7 @@ function generateMockTriageResponse(input: TriageInput, ragContext?: SearchConte
 }
 
 /**
- * Check if the input is a non-medical query
+ * Check if the input is a non-medical query that needs informational response
  */
 function isNonMedicalQuery(message: string): boolean {
   const messageLower = message.toLowerCase().trim();
@@ -416,17 +460,156 @@ function isNonMedicalQuery(message: string): boolean {
     return true;
   }
   
-  // Greetings and general questions
-  const nonMedicalPatterns = [
-    /^(hello|hi|hey|good morning|good afternoon|good evening)/,
-    /^(test|testing|check)/,
-    /^(how are you|what can you do|how do you work)/,
-    /^(help|info|information|about)/,
-    /^(thank you|thanks|bye|goodbye)/,
-    /^(what|how|when|where|why).*(system|work|help|service)/
+  // Greetings and basic system questions
+  const basicNonMedicalPatterns = [
+    /^(hello|hi|hey|good morning|good afternoon|good evening)$/,
+    /^(test|testing|check)$/,
+    /^(how are you|what can you do|how do you work)$/,
+    /^(thank you|thanks|bye|goodbye)$/,
   ];
   
-  return nonMedicalPatterns.some(pattern => pattern.test(messageLower));
+  // BUT: If it's asking about CAF medical requirements, pilot standards, etc., 
+  // this is still medical-related and should be handled as informational medical query
+  const medicalInformationPatterns = [
+    /(pilot|aircrew|aviation|flying).*requirements?/,
+    /(medical|health).*requirements?/,
+    /(annual|yearly).*medical/,
+    /(caf|canadian armed forces).*medical/,
+    /(trade|occupation).*medical/,
+    /(diving|diver).*medical/,
+    /(infantry|combat|special forces).*medical/,
+    /medical.*standards?/,
+    /fitness.*standards?/,
+    /health.*standards?/,
+    /what.*requirements?/,
+    /requirements?.*per year/
+  ];
+  
+  // If it matches medical information patterns, it's NOT a non-medical query
+  if (medicalInformationPatterns.some(pattern => pattern.test(messageLower))) {
+    return false;
+  }
+  
+  return basicNonMedicalPatterns.some(pattern => pattern.test(messageLower));
+}
+
+/**
+ * Check if the input is an informational medical query (about CAF requirements, standards, etc.)
+ */
+function isInformationalMedicalQuery(message: string): boolean {
+  const messageLower = message.toLowerCase().trim();
+  
+  const informationalPatterns = [
+    /(pilot|aircrew|aviation|flying).*requirements?/,
+    /(medical|health).*requirements?/,
+    /(annual|yearly).*medical/,
+    /(caf|canadian armed forces).*medical/,
+    /(trade|occupation).*medical/,
+    /(diving|diver).*medical/,
+    /(infantry|combat|special forces).*medical/,
+    /medical.*standards?/,
+    /fitness.*standards?/,
+    /health.*standards?/,
+    /what.*requirements?/,
+    /requirements?.*per year/,
+    /medical.*clearance/,
+    /fitness.*test/,
+    /physical.*standards?/,
+    /medical.*exam/,
+    /health.*screening/
+  ];
+  
+  return informationalPatterns.some(pattern => pattern.test(messageLower));
+}
+
+/**
+ * Handle informational medical queries about CAF requirements and standards
+ */
+function handleInformationalMedicalQuery(message: string, ragContext?: SearchContext): TriageOutput {
+  const messageLower = message.toLowerCase().trim();
+  
+  let reason = '';
+  
+  if (messageLower.includes('pilot') || messageLower.includes('aircrew') || messageLower.includes('aviation') || messageLower.includes('flying')) {
+    reason = "✈️ **CAF Pilot Medical Requirements & Policies:**\n\n" +
+             "**Annual Medical Requirements:**\n" +
+             "• Aviation Medical Examination (AME) - conducted annually\n" +
+             "• Medical Category certification (Cat 1/2/3 based on aircraft type)\n" +
+             "• Vision assessment: 20/20 corrected, color vision standards\n" +
+             "• Hearing: Pure tone audiometry within CAF limits\n" +
+             "• Cardiovascular stress testing (age-dependent)\n" +
+             "• Neurological and psychological evaluation\n\n" +
+             "**CAF Aviation Medicine Categories:**\n" +
+             "• **Category 1**: Fighter/high-performance aircraft\n" +
+             "• **Category 2**: Multi-engine transport aircraft\n" +
+             "• **Category 3**: Basic flying training/utility aircraft\n\n" +
+             "**Additional Requirements:**\n" +
+             "• G-tolerance testing for fighter pilots\n" +
+             "• Hypoxia training certification\n" +
+             "• Night vision goggle compatibility\n" +
+             "• Ejection seat medical clearance (fighters)\n\n" +
+             "**Policy References:**\n" +
+             "• A-MD-154-000/FP-000 (CAF Aviation Medicine Manual)\n" +
+             "• Transport Canada CARs 404 (Medical Standards)\n" +
+             "• CAF Health Services Group directives\n\n" +
+             "**Contact:** Wing Aviation Medicine Officer or 1 Canadian Air Division Flight Surgeon for detailed requirements.";
+  } else if (messageLower.includes('diving') || messageLower.includes('diver')) {
+    reason = "🤿 **CAF Diving Medical Requirements:**\n\n" +
+             "**Annual Requirements:**\n" +
+             "• Annual Diving Medical Examination\n" +
+             "• Pulmonary function tests\n" +
+             "• Cardiovascular fitness assessment\n" +
+             "• Neurological examination\n" +
+             "• Dental examination for equipment fit\n\n" +
+             "**Key Standards:**\n" +
+             "• Must pass specialized diving medical\n" +
+             "• No respiratory conditions (asthma, etc.)\n" +
+             "• Excellent cardiovascular fitness\n" +
+             "• No history of pneumothorax\n\n" +
+             "**Contact:** Diving Medical Officer or specialized diving medicine clinic.";
+  } else if (messageLower.includes('requirements') && messageLower.includes('per year')) {
+    reason = "📅 **CAF Annual Medical Requirements (General):**\n\n" +
+             "**Standard CAF Members:**\n" +
+             "• Annual medical examination (if over 40 or in certain trades)\n" +
+             "• Biennial medical for most members under 40\n" +
+             "• Annual fitness test (FORCE test)\n" +
+             "• Dental examination (annual)\n" +
+             "• Vision screening (as required)\n\n" +
+             "**Special Trades (additional requirements):**\n" +
+             "• Pilots: Aviation medical + specialized assessments\n" +
+             "• Divers: Diving medical + pulmonary function\n" +
+             "• Special Forces: Enhanced fitness + psychological\n" +
+             "• Combat Arms: Enhanced fitness standards\n\n" +
+             "**Contact:** Your unit medical officer or base clinic for specific requirements.";
+  } else {
+    reason = "📋 **CAF Medical Standards & Requirements:**\n\n" +
+             "I can provide information about various CAF medical requirements including:\n\n" +
+             "• **Pilot/Aircrew** - Aviation medicine requirements\n" +
+             "• **Diving** - Specialized diving medical standards\n" +
+             "• **Combat Arms** - Enhanced fitness and medical standards\n" +
+             "• **General Service** - Standard CAF medical requirements\n" +
+             "• **Special Forces** - Enhanced screening requirements\n\n" +
+             "Could you specify which trade or type of requirements you're interested in? For example:\n" +
+             "• 'What are the pilot medical requirements?'\n" +
+             "• 'Combat diver medical standards'\n" +
+             "• 'Annual medical requirements for infantry'\n\n" +
+             "**Contact:** Your unit medical officer for trade-specific requirements.";
+  }
+  
+  // Add RAG context if available
+  if (ragContext && ragContext.results.length > 0) {
+    reason += "\n\n**📚 Supporting Documentation:**\n";
+    for (const result of ragContext.results.slice(0, 2)) {
+      reason += `• ${result.documentTitle} - ${result.documentType}\n`;
+    }
+  }
+  
+  return {
+    appointmentType: 'no appointment needed',
+    reason,
+    complexity: 'medium',
+    evidenceBased: ragContext ? ragContext.results.length > 0 : false,
+  };
 }
 
 /**
