@@ -499,15 +499,11 @@ export class WebSearchService {
         title: doc.title,
         document_type: doc.documentType,
         content: doc.content,
-        source: doc.url,
+        source: doc.url || 'web_search',
         url: doc.url,
         version: '1.0',
-        metadata: {
-          webSearchResult: true,
-          relevance: doc.relevance,
-          sourceType: doc.source,
-          ingestedAt: new Date().toISOString()
-        }
+        tags: ['web_search_result', doc.source, `relevance_${Math.round(doc.relevance * 100)}`],
+        last_updated: new Date().toISOString()
       });
 
       await this.ragService.ingestDocument(reference.id);
