@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import path from 'path';
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -25,6 +26,13 @@ const nextConfig: NextConfig = {
 
   assetPrefix: process.env.NODE_ENV === 'production' ? '' : '',
   webpack: (config: any, { dev, isServer }: { dev: boolean; isServer: boolean }) => {
+    // Ensure path mapping works in Firebase build environment
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, 'src'),
+    };
+    
     if (!dev && !isServer) {
       config.optimization = {
         ...config.optimization,
