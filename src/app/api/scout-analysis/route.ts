@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { policyBasedAppointmentRouting } from '@/ai/flows/policy-based-routing';
+import { ScoutEnhancementService } from '@/lib/rag/scout-enhancement-service';
 
 export async function POST(request: NextRequest) {
   try {
-    const { triageText, includeContext } = await request.json();
+    const { triageText, includeContext, enableContinuousImprovement } = await request.json();
     
     if (!triageText || typeof triageText !== 'string') {
       return NextResponse.json({ error: 'Triage text is required' }, { status: 400 });
@@ -14,6 +15,14 @@ export async function POST(request: NextRequest) {
     // Use the existing policy-based routing with Scout AI
     const result = await policyBasedAppointmentRouting({ triageText });
 
+    // 🧠 Enhanced Scout Analysis with Continuous Improvement
+    const scoutService = new ScoutEnhancementService();
+    let continuousImprovementData = null;
+    
+    if (enableContinuousImprovement) {
+      continuousImprovementData = await scoutService.performEnhancedAnalysis(triageText, result);
+    }
+
     // Enhanced response with confidence scoring and sources
     const response = {
       appointmentType: result.appointmentType,
@@ -23,13 +32,31 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
       scoutModel: 'meta-llama/llama-4-scout',
       analysis: {
-        triageText: triageText.substring(0, 200), // First 200 chars for reference
+        triageText: triageText.substring(0, 200),
         complexity: determineComplexity(triageText, result.appointmentType),
-        urgency: determineUrgency(result.appointmentType)
-      }
+        urgency: determineUrgency(result.appointmentType),
+        medicalKeywords: extractMedicalKeywords(triageText),
+        ...(continuousImprovementData && {
+          patternAnalysis: continuousImprovementData.analysis.patternAnalysis
+        })
+      },
+      
+      // 🚀 NEW: Continuous Improvement Features (only if enabled)
+      ...(continuousImprovementData && {
+        continuousImprovement: {
+          knowledgeGaps: continuousImprovementData.knowledgeGaps,
+          discoveredResources: continuousImprovementData.discoveredResources,
+          improvementSuggestions: continuousImprovementData.analysis.improvementSuggestions,
+          confidenceFactors: continuousImprovementData.analysis.confidenceFactors,
+          learningRecommendations: continuousImprovementData.learningRecommendations
+        }
+      })
     };
 
-    console.log(`✅ Scout Analysis complete: ${result.appointmentType} (${Math.round(response.confidence * 100)}% confidence)`);
+    console.log(`✅ Enhanced Scout Analysis complete: ${result.appointmentType} (${Math.round(response.confidence * 100)}% confidence)`);
+    if (continuousImprovementData) {
+      console.log(`🧠 Identified ${continuousImprovementData.knowledgeGaps.length} knowledge gaps, discovered ${continuousImprovementData.discoveredResources.length} potential resources`);
+    }
 
     return NextResponse.json(response);
 
@@ -50,23 +77,62 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({
-    message: 'Scout AI Analysis API',
-    description: 'POST a JSON body with { "triageText": "patient symptoms..." } to get AI-powered appointment routing',
+    message: 'Enhanced Scout AI Analysis API with Continuous Improvement',
+    description: 'POST a JSON body with { "triageText": "patient symptoms...", "enableContinuousImprovement": true } to get AI-powered analysis with knowledge discovery',
     model: 'meta-llama/llama-4-scout',
     capabilities: [
       'Policy-based appointment routing',
       'CAF medical protocol compliance', 
       'Emergency detection',
-      'Evidence-based recommendations'
+      'Evidence-based recommendations',
+      '🔥 NEW: Knowledge gap detection',
+      '🔥 NEW: Database resource discovery',
+      '🔥 NEW: Continuous improvement loop',
+      '🔥 NEW: AI Maverick feedback'
     ],
     example: {
       triageText: 'Patient reports chest pain, shortness of breath, and dizziness lasting 2 hours. Pain radiates to left arm.',
-      includeContext: true
+      includeContext: true,
+      enableContinuousImprovement: true
     }
   });
 }
 
-// Helper functions
+// Helper functions used by both Scout service and API
+
+// Existing helper functions (enhanced)
+function extractMedicalKeywords(triageText: string): string[] {
+  const commonMedicalTerms = [
+    // Symptoms
+    'pain', 'ache', 'hurt', 'sore', 'fever', 'cough', 'headache', 'nausea', 'dizzy', 'fatigue',
+    'shortness of breath', 'chest pain', 'abdominal pain', 'back pain', 'joint pain',
+    'swelling', 'rash', 'bleeding', 'vomiting', 'diarrhea', 'constipation',
+    
+    // Emergency indicators
+    'severe', 'acute', 'sudden', 'emergency', 'urgent', 'can\'t breathe',
+    'unconscious', 'bleeding heavily', 'heart attack', 'stroke',
+    
+    // Mental health
+    'stress', 'anxiety', 'depression', 'mental health', 'counseling', 'therapy',
+    'sleep problems', 'insomnia', 'panic', 'trauma', 'ptsd',
+    
+    // CAF specific
+    'pilot', 'aircrew', 'aviation medicine', 'flight medical', 'G-force',
+    'combat', 'deployment', 'training injury', 'military'
+  ];
+
+  const messageLower = triageText.toLowerCase();
+  const foundTerms: string[] = [];
+
+  for (const term of commonMedicalTerms) {
+    if (messageLower.includes(term)) {
+      foundTerms.push(term);
+    }
+  }
+
+  return [...new Set(foundTerms)]; // Remove duplicates
+}
+
 function calculateConfidence(appointmentType: string, reason: string): number {
   // Base confidence on appointment type specificity and reason length
   let confidence = 0.75; // Base confidence
