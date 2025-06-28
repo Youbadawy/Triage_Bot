@@ -33,35 +33,24 @@ const nextConfig: NextConfig = {
       '@': path.resolve(__dirname, 'src'),
     };
     
-    // Fix for handlebars and OpenTelemetry issues
+    // Fix for Node.js modules not available in browser
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
       path: false,
       crypto: false,
+      module: false,
     };
     
-    // Ignore problematic dependencies
-    config.externals = {
-      ...config.externals,
-      handlebars: 'handlebars',
-    };
-    
-    // More aggressive handling of problematic modules
-    config.module = config.module || {};
-    config.module.rules = config.module.rules || [];
-    
-    // Handle handlebars completely
-    config.module.rules.push({
-      test: /node_modules\/handlebars/,
-      use: 'null-loader'
-    });
-    
-    // Handle dotprompt module that uses handlebars
-    config.module.rules.push({
-      test: /node_modules\/dotprompt/,
-      use: 'null-loader'
-    });
+    // Simple fix: ignore handlebars-related modules for client-side builds
+    if (!isServer) {
+      const originalExternals = config.externals || [];
+      config.externals = [
+        ...originalExternals,
+        'handlebars',
+        '@opentelemetry/exporter-jaeger'
+      ];
+    }
     
     if (!dev && !isServer) {
       config.optimization = {
