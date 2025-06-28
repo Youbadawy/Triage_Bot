@@ -72,9 +72,9 @@ env:
       - RUNTIME
 
 runConfig:
-  # Production-grade resources
+  # Production-grade resources (compliant with region quota)
   cpu: 2
   memoryMiB: 1024
-  maxInstances: 10
+  maxInstances: 5  # Reduced from 10 to comply with quota limits
   minInstances: 1  # Keep at least 1 instance warm
   concurrency: 50 
