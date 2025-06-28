@@ -33,6 +33,36 @@ const nextConfig: NextConfig = {
       '@': path.resolve(__dirname, 'src'),
     };
     
+    // Fix for handlebars and OpenTelemetry issues
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      path: false,
+      crypto: false,
+    };
+    
+    // Ignore problematic dependencies
+    config.externals = {
+      ...config.externals,
+      handlebars: 'handlebars',
+    };
+    
+    // More aggressive handling of problematic modules
+    config.module = config.module || {};
+    config.module.rules = config.module.rules || [];
+    
+    // Handle handlebars completely
+    config.module.rules.push({
+      test: /node_modules\/handlebars/,
+      use: 'null-loader'
+    });
+    
+    // Handle dotprompt module that uses handlebars
+    config.module.rules.push({
+      test: /node_modules\/dotprompt/,
+      use: 'null-loader'
+    });
+    
     if (!dev && !isServer) {
       config.optimization = {
         ...config.optimization,

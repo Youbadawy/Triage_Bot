@@ -1,6 +1,7 @@
 {
   "projects": {
-    "caf": "caf-medroute"
+    "caf": "caf-medroute",
+    "production": "caf-medroute"
   },
   "targets": {},
   "etags": {}
